@@ -1,13 +1,13 @@
 import argparse
 import logging
 from pathlib import Path
-from queue import Queue
-from time import sleep
 
 from galaxy_crawler.app.config import Config
 from galaxy_crawler.app.di import AppComponent
-from galaxy_crawler.queries import QueryOrder
-from galaxy_crawler.parser import ResponseParser
+from galaxy_crawler.queries.v1 import V1QueryOrder
+from galaxy_crawler.filters.v1 import V1FilterEnum
+from galaxy_crawler.errors import NotSupportedFilterError, InvalidExpressionError
+from time import sleep
 
 DEFAULT_INTERVAL = Config.DEFAULT_INTERVAL
 DEFAULT_RETRY_COUNT = Config.DEFAULT_RETRY
@@ -18,34 +18,31 @@ logger = logging.getLogger(__name__)
 def scrape(appconfig: 'Config'):
     components = AppComponent(appconfig)
     components.configure_logger()
-    query_builder = components.get_query_builder()
-    query_order = components.get_query_order()
-    initial_url = query_builder.search() \
-        .order_by(query_order, appconfig.inverse) \
-        .build()
-    url_queue = Queue()
-    json_queue = Queue()
-    url_queue.put(initial_url)
+    try:
+        crawler = components.get_crawler()
+        parser = components.get_parser()
+    except (NotSupportedFilterError, InvalidExpressionError) as e:
+        logger.error(e)
+        exit(1)
 
-    # Start to crawl on another thread
-    crawler = components.get_crawler(url_queue, json_queue)
+    # Start to crawl and parse on another thread
     crawler.start()
-
-    data_stores = components.get_response_data_stores()
-
-    # Start to crawl on another thread
-    parser = ResponseParser(url_queue, json_queue, data_stores, query_builder)
     parser.start()
 
     try:
-        parser.join()
-        crawler.join()
+        while parser.is_alive():
+            sleep(1)
+        if crawler.is_alive():
+            crawler.send_stop_signal()
+            crawler.join()
     except KeyboardInterrupt:
         logger.error("SIGTERM received.")
-        parser.send_stop_signal()
-        crawler.send_stop_signal()
-        parser.join()
-        crawler.join()
+        if parser.is_alive():
+            parser.send_stop_signal()
+            parser.join()
+        if crawler.is_alive():
+            crawler.send_stop_signal()
+            crawler.join()
 
 
 def main():
@@ -66,10 +63,13 @@ def main():
                            help=f"Number of retrying (default={DEFAULT_RETRY_COUNT})")
     start_cmd.add_argument("--format", choices=["json"], nargs="+", dest='output_format',
                            help=f"Output format (default={Config.DEFAULT_OUTPUT_FORMAT})")
-    start_cmd.add_argument("--order-by", choices=QueryOrder.choices(),
+    start_cmd.add_argument("--order-by", choices=V1QueryOrder.choices(),
                            help=f"Query order (default={Config.DEFAULT_ORDER_BY}). It is a descending order by default.")
     start_cmd.add_argument("--inverse", action="store_true",
                            help="If this specified, make the order of query inverse")
+    start_cmd.add_argument("--filters", type=str, nargs='*',
+                           help=f"Filter expression (e.g. download>500). "
+                           f"Available filter types are {V1FilterEnum.choices()}")
     start_cmd.set_defaults(func=scrape)
     args = parser.parse_args()
     try:

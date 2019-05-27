@@ -1,6 +1,6 @@
-from .base import Filter, DefaultFilter
+from .base import Filter, DefaultFilter, FilterEnum
 
 
 __all__ = [
-    "Filter", "DefaultFilter"
+    "Filter", "DefaultFilter", "v1"
 ]

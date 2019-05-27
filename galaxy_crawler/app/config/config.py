@@ -47,9 +47,11 @@ class Config(object):
     DEFAULT_DEBUG = False
     DEFAULT_OUTPUT_FORMAT = ['json']
     DEFAULT_ORDER_BY = "download"
+    DEFAULT_FILTERS = []
 
     def __init__(self, output_dir: 'Path', version: str, interval: int, retry: int, output_format: 'List[str]',
-                 debug: 'bool', order_by: str, inverse: bool, log_dir: 'Path' = None, **kwargs):
+                 debug: 'bool', order_by: str, inverse: bool, filters: 'List[str]', log_dir: 'Path' = None,
+                 **kwargs):
         assert interval >= 0, "Interval must be a positive value."
         assert retry >= 0, "Retry must be a positive value."
         self.output_dir = output_dir
@@ -61,6 +63,7 @@ class Config(object):
         self.log_dir = log_dir
         self.order_by = order_by
         self.inverse = inverse
+        self.filters = filters
 
     @classmethod
     def load(cls, args: 'Union[Namespace, dict]') -> 'Config':
@@ -102,7 +105,7 @@ class Config(object):
                 value = strtobool(value, env_key)
             elif key.lower() in ["interval", "retry"]:
                 value = strtoint(value, env_key)
-            elif key.lower() == "output_format":
+            elif key.lower() in ["output_format", "filters"]:
                 value = [v.strip().lower() for v in value.split(",")]
             config_dict[key] = value
         return reject_none(config_dict)
