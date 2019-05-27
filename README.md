@@ -52,6 +52,7 @@ Example is as follows.
 
 ```bash
 $ pipenv run python -m galaxy_crawler.cli start \
+    /path/to/output \
     --interval 30 \
     --retry 5 \
     --version v1 \
