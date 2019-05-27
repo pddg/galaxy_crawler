@@ -21,7 +21,7 @@ usage: cli.py start [-h] [--debug] [--log-dir LOG_DIR] [--version {v1}]
                     [--interval INTERVAL] [--retry RETRY]
                     [--format {json} [{json} ...]]
                     [--order-by {download,star,contributor_name,relevance,fork,watcher}]
-                    [--inverse]
+                    [--inverse] [--filters [FILTERS [FILTERS ...]]]
                     output_dir
 
 positional arguments:
@@ -38,13 +38,35 @@ optional arguments:
                         Query order (default=download). It is a descending
                         order by default.
   --inverse             If this specified, make the order of query inverse
+  --filters [FILTERS [FILTERS ...]]
+                        Filter expression (e.g. download>500). Available
+                        filter types are ('download', 'star', 'fork',
+                        'ansible')
 
 LOGGING:
   --debug               Enable debug logging
   --log-dir LOG_DIR     Log output directory
 ```
 
-Currently, `--order-by donwload` only works fine (threshold is fixed (500)).
+Example is as follows.
+
+```bash
+$ pipenv run python -m galaxy_crawler.cli start \
+    --interval 30 \
+    --retry 5 \
+    --version v1 \
+    --order-by download \
+    --filter download>1000 \
+    --format json
+```
+
+### Multiple filter
+
+Multiple filter feature is supported. Following option is interpreted as `download > 1000 && star > 50`.
+
+```bash
+--filter download>1000 star>50
+```
 
 ## Author
 
