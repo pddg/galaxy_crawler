@@ -36,12 +36,15 @@ class JsonDataStore(ResponseDataStore):
             self.repositories['start_at'] = datetime.strptime(self.repositories['start_at'], datetime_format)
             self.repositories['finished_at'] = datetime.strptime(self.repositories['finished_at'], datetime_format)
         else:
-            now = timezone('Asia/Tokyo').localize(datetime.now())
+            now = self._get_current_time()
             self.repositories = dict({
                 "start_at": now,
                 "finished_at": now,
                 "repositories": dict()
             })
+
+    def _get_current_time(self):
+        return timezone('Asia/Tokyo').localize(datetime.now())
 
     def exists(self, key: 'Union[int, str]') -> bool:
         if isinstance(key, int):
@@ -63,11 +66,11 @@ class JsonDataStore(ResponseDataStore):
     def save(self, obj: 'dict', commit: bool = False) -> 'Any':
         if "id" not in obj:
             raise errors.NoPrimaryKeyError
-
         primary_key = str(obj['id'])
         if self.exists(primary_key):
             logger.warning(f"Override the item number {primary_key}")
         self.repositories['repositories'][primary_key] = obj
+        self.repositories['finished_at'] = self._get_current_time()
         if commit:
             self.commit()
 
