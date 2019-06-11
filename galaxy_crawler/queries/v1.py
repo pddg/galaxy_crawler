@@ -20,23 +20,67 @@ class V1QueryOrder(QueryOrder):
 
 class V1QueryBuilder(QueryBuilder):
     search_path = '/search/content'
+    platforms_path = '/platforms'
+    tags_path = '/tags'
+    cloud_platforms_path = '/cloud_platforms'
+    providers_path = '/providers/active'
+    namespaces_path = '/namespaces'
+    provider_namespaces_path = '/provider_namespaces'
+    content_types_path = '/content_types'
+    role_types_path = '/role_types'
+    imports_path = '/imports'
+
+    default_queries = {
+        "deprecated": False,
+        "page_size": 100
+    }
 
     def __init__(self, query_order: 'QueryOrder', ascending_order: bool,
-                 deprecated: bool = False, page_size: int = 100):
-        self._queries = {
-            "deprecated": deprecated,
-            "page_size": page_size
-        }
+                 deprecated: bool = None, page_size: int = None):
+        self._queries = self.default_queries
+        if deprecated is not None:
+            self._queries['deprecated'] = deprecated
+        if page_size is not None:
+            self._queries['page_size'] = page_size
         self._path = '/'
         self.order = query_order
         self.ascending_order = ascending_order
 
+    def _replace_path(self, path_name: str) -> 'QueryBuilder':
+        suffix = "_path"
+        path_name = path_name + suffix
+        path = getattr(self, path_name, None)
+        if path is None:
+            raise AttributeError(f"QueryBuilder has no attribute '{path_name}'")
+        if self._path != path:
+            self._path = path
+        return self
+
     def search(self, keyword: 'Optional[str]' = None) -> 'QueryBuilder':
         if keyword:
             self._queries['keywords'] = parse.quote(keyword)
-        if self._path != self.search_path:
-            self._path = self.search_path
-        return self
+        return self._replace_path('search')
+
+    def platforms(self) -> 'QueryBuilder':
+        return self._replace_path('platforms')
+
+    def tags(self) -> 'QueryBuilder':
+        return self._replace_path('tags')
+
+    def cloud_platforms(self) -> 'QueryBuilder':
+        return self._replace_path('cloud_platforms')
+
+    def providers(self) -> 'QueryBuilder':
+        return self._replace_path('providers')
+
+    def namespaces(self) -> 'QueryBuilder':
+        return self._replace_path('namespaces')
+
+    def role_types(self) -> 'QueryBuilder':
+        return self._replace_path('role_types')
+
+    def imports(self) -> 'QueryBuilder':
+        return self._replace_path('imports')
 
     def order_by(self, kind: 'QueryOrder', ascending_order: bool = False) -> 'QueryBuilder':
         order = kind.value
