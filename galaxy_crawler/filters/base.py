@@ -5,6 +5,7 @@ from galaxy_crawler.errors import InvalidExpressionError
 
 if TYPE_CHECKING:
     from typing import Type, Union, Tuple
+    from galaxy_crawler.constants import Target
 
 
 class FilterEnum(Enum):
@@ -127,11 +128,11 @@ class Filter(HolderMixin, metaclass=ABCMeta):
     """Filter base class"""
 
     @abstractmethod
-    def passed(self, role: 'dict') -> bool:
+    def passed(self, target: 'Target', role: 'dict') -> bool:
         raise NotImplementedError
 
 
 class DefaultFilter(Filter):
 
-    def passed(self, role: 'dict') -> bool:
+    def passed(self, target: 'Target', role: 'dict') -> bool:
         return True

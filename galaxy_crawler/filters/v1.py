@@ -3,6 +3,8 @@ from typing import TYPE_CHECKING
 from logging import getLogger
 from .base import FilterEnum
 from galaxy_crawler.errors import NotSupportedFilterError
+from galaxy_crawler.constants import Target
+
 
 if TYPE_CHECKING:
     from typing import Union
@@ -36,7 +38,9 @@ class CountFilter(Filter):
         self.threshold = threshold
         self.key_name = key_name
 
-    def passed(self, role: 'dict') -> bool:
+    def passed(self, target: 'Target', role: 'dict') -> bool:
+        if target not in [Target.ROLES, Target.REPOSITORIES]:
+            return True
         try:
             count = role[self.key_name]
         except AttributeError:
@@ -52,7 +56,9 @@ class AnsibleVersionFilter(Filter):
         self.min_version = min_version
         self.key_name = 'min_ansible_version'
 
-    def passed(self, role: 'dict') -> bool:
+    def passed(self, target: 'Target', role: 'dict') -> bool:
+        if target not in [Target.REPOSITORIES, Target.ROLES]:
+            return True
         try:
             min_version_str = role[self.key_name]
         except AttributeError:
