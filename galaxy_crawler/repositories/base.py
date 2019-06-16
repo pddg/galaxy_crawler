@@ -4,6 +4,7 @@ from abc import ABCMeta, abstractmethod
 
 if TYPE_CHECKING:
     from typing import Any, List
+    from galaxy_crawler.constants import Target
 
 
 class ResponseDataStore(metaclass=ABCMeta):
@@ -21,7 +22,7 @@ class ResponseDataStore(metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
-    def save(self, obj: 'Any', commit: bool = False) -> 'Any':
+    def save(self, target: 'Target', obj: 'Any', commit: bool = False) -> 'Any':
         raise NotImplementedError
 
     @abstractmethod
