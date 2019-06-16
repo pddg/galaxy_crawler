@@ -1,17 +1,18 @@
 import codecs
 import json
+import copy
 from collections import OrderedDict
 from datetime import datetime
 from logging import getLogger
 from typing import TYPE_CHECKING
 from pytz import timezone
 
-from galaxy_crawler import errors
 from galaxy_crawler.repositories import ResponseDataStore
 
 if TYPE_CHECKING:
-    from typing import Any, Union
+    from typing import Any, Union, List
     from pathlib import Path
+    from galaxy_crawler.constants import Target
 
 logger = getLogger(__name__)
 
@@ -24,56 +25,70 @@ def _serialize(o):
     raise TypeError(repr(o) + " is not JSON serializable")
 
 
+class Counter(object):
+
+    def __init__(self):
+        self._memory = dict()
+
+    def increment(self, key: str):
+        if key in self._memory:
+            self._memory[key] += 1
+        else:
+            self._memory[key] = 0
+
+    def get_count(self, key: 'str') -> int:
+        if key in self._memory:
+            return self._memory[key]
+        self._memory[key] = 0
+        return 0
+
+
 class JsonDataStore(ResponseDataStore):
-    file_name = "repositories.json"
 
     def __init__(self, output_dir: 'Path'):
         self.output_dir = output_dir
-        self.output_file = output_dir / self.file_name
-        if self.output_file.exists():
-            with codecs.open(str(self.output_file), 'r', 'utf-8') as fp:
-                self.repositories = json.load(fp)
-            self.repositories['start_at'] = datetime.strptime(self.repositories['start_at'], datetime_format)
-            self.repositories['finished_at'] = datetime.strptime(self.repositories['finished_at'], datetime_format)
-        else:
-            now = self._get_current_time()
-            self.repositories = dict({
-                "start_at": now,
-                "finished_at": now,
-                "repositories": dict()
-            })
+        self.counter = Counter()
+        now = self._get_current_time()
+        self.template = {
+            "start_at": now,
+            "finished_at": now,
+            "json": []
+        }
+        self.responses = dict()
 
     def _get_current_time(self):
         return timezone('Asia/Tokyo').localize(datetime.now())
 
     def exists(self, key: 'Union[int, str]') -> bool:
-        if isinstance(key, int):
-            key = str(key)
-        if key in self.repositories['repositories']:
-            return True
-        return False
+        raise NotImplementedError
 
     def get(self, key: 'Union[int, str]') -> 'dict':
-        if isinstance(key, int):
-            key = str(key)
-        if self.exists(key):
-            return self.repositories['repositories'][key]
-        raise errors.NoSuchRecord
+        raise NotImplementedError
 
     def get_all(self) -> 'OrderedDict':
-        return OrderedDict(self.repositories['repositories'])
+        raise NotImplementedError
 
-    def save(self, obj: 'dict', commit: bool = False) -> 'Any':
-        if "id" not in obj:
-            raise errors.NoPrimaryKeyError
-        primary_key = str(obj['id'])
-        if self.exists(primary_key):
-            logger.warning(f"Override the item number {primary_key}")
-        self.repositories['repositories'][primary_key] = obj
-        self.repositories['finished_at'] = self._get_current_time()
+    def save(self, target: 'Target', obj: 'List[dict]', commit: bool = False) -> 'Any':
+        if target.name in self.responses:
+            self.responses[target.name]['json'].append(obj)
+            self.responses[target.name]['finished_at'] = self._get_current_time()
+        else:
+            tmpl = copy.deepcopy(self.template)
+            tmpl['json'] = obj
+            tmpl['finished_at'] = self._get_current_time()
+            self.responses[target.name] = tmpl
         if commit:
             self.commit()
 
+    def initialize(self):
+        self.responses = dict()
+
     def commit(self):
-        with codecs.open(str(self.output_file), 'w', 'utf-8') as fp:
-            json.dump(self.repositories, fp, default=_serialize)
+        for name, value in self.responses.items():
+            count = self.counter.get_count(name)
+            f = self.output_dir / name / f"{name}_{count}.json"
+            if not f.parent.exists():
+                f.parent.mkdir(parents=True)
+            with codecs.open(str(f), 'w', 'utf-8') as fp:
+                json.dump(value, fp, default=_serialize)
+            self.counter.increment(key=name)
