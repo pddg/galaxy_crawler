@@ -9,9 +9,9 @@ if TYPE_CHECKING:
 
 class QueryOrder(Enum):
 
-    def inverse(self):
+    def inverse(self, query: str) -> str:
         """Descending order"""
-        return "-" + self.value
+        return "-" + query
 
     @classmethod
     def choices(cls):

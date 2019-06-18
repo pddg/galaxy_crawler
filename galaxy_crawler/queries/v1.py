@@ -3,19 +3,28 @@ from typing import TYPE_CHECKING
 from urllib import parse
 
 from .base import QueryBuilder, QueryOrder
+from galaxy_crawler.constants import Target
 
 if TYPE_CHECKING:
-    from galaxy_crawler.constants import Target
+    from typing import Dict, Any
 
 API_BASE_URL = 'https://galaxy.ansible.com/api/v1'
 
 
 class V1QueryOrder(QueryOrder):
-    DOWNLOAD = "repository__download_count"
-    STAR = "repository__stargazers_count"
-    CONTRIBUTOR_NAME = "namespace__name,name"
-    FORK = "repository__forks_count"
-    WATCHER = "repository__watchers_count"
+    DOWNLOAD = "download_count"
+    STAR = "stargazers_count"
+    NAME = "name"
+    CONTRIBUTOR_NAME = "namespace__name"
+    FORK = "forks_count"
+    WATCHER = "watchers_count"
+
+    def by_target(self, target) -> str:
+        if target == Target.ROLES:
+            if self.value in [self.NAME, self.CONTRIBUTOR_NAME]:
+                return self.value
+            return "repository__" + self.value
+        return self.value
 
 
 class V1TargetPath(QueryOrder):
@@ -42,11 +51,12 @@ class V1QueryBuilder(QueryBuilder):
     }
 
     def __init__(self, page_size: int = None):
-        self._queries = self.default_queries
+        self._queries = self.default_queries  # type: Dict[Any]
         if page_size is not None:
             self._queries['page_size'] = page_size
         self._default_queries = copy.deepcopy(self._queries)
         self._path = '/'
+        self.ascending_order = False
 
     def _replace_path(self, path_name: str) -> 'QueryBuilder':
         suffix = "_path"
@@ -59,16 +69,21 @@ class V1QueryBuilder(QueryBuilder):
         return self
 
     def order_by(self, kind: 'QueryOrder', ascending_order: bool = False) -> 'QueryBuilder':
-        order = kind.value
-        if not ascending_order:
-            order = kind.inverse()
-        self._queries['order_by'] = order
+        self.ascending_order = ascending_order
+        self._queries['order_by'] = kind
         return self
 
     def build(self, target: 'Target') -> str:
+        order = self._queries['order_by']
+        order_str = order.by_target(target)
+        if not self.ascending_order:
+            order_str = order.inverse(order_str)
+        self._queries['order_by'] = order_str
         query_str = parse.urlencode(self._queries)
         parsed = parse.urlparse(API_BASE_URL)
         path = parsed.path + V1TargetPath.from_target(target).value
+        # Initialize
+        self.ascending_order = False
         self._queries = copy.deepcopy(self._default_queries)
         return parse.urlunparse(
             (parsed.scheme, parsed.netloc, path, '', query_str, '')
