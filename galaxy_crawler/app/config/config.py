@@ -75,6 +75,7 @@ class Config(object):
             Target.PROVIDERS,
             Target.NAMESPACES,
             Target.PROVIDER_NAMESPACES,
+            Target.REPOSITORIES,
             Target.ROLES
         ]
 
