@@ -3,14 +3,15 @@ from enum import Enum
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import Optional, Tuple
+    from typing import Tuple
+    from galaxy_crawler.constants import Target
 
 
 class QueryOrder(Enum):
 
-    def inverse(self):
+    def inverse(self, query: str) -> str:
         """Descending order"""
-        return "-" + self.value
+        return "-" + query
 
     @classmethod
     def choices(cls):
@@ -21,15 +22,11 @@ class QueryOrder(Enum):
 class QueryBuilder(metaclass=ABCMeta):
 
     @abstractmethod
-    def search(self, keyword: 'Optional[str]' = None) -> 'QueryBuilder':
-        raise NotImplementedError
-
-    @abstractmethod
     def order_by(self, kind: 'Enum', ascending_order: bool = True) -> 'QueryBuilder':
         raise NotImplementedError
 
     @abstractmethod
-    def build(self):
+    def build(self, target: 'Target') -> str:
         raise NotImplementedError
 
     @abstractmethod

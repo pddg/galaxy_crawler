@@ -6,7 +6,10 @@ from time import sleep
 
 import requests
 
+from galaxy_crawler.queries.v1 import V1TargetPath
+
 if TYPE_CHECKING:
+    from galaxy_crawler.constants import Target
     from typing import Dict, Optional, Any
 
 logger = getLogger(__name__)
@@ -18,6 +21,26 @@ class NoURLExists(Exception):
 
 class RequestFailed(Exception):
     pass
+
+
+class Request(object):
+
+    def __init__(self, target: 'Target', url: str = None):
+        self.target = target
+        self._url = url
+
+    @property
+    def url(self) -> str:
+        if self._url is None:
+            return V1TargetPath.from_target(self.target)
+        return self._url
+
+
+class Response(object):
+
+    def __init__(self, target: 'Target', response: dict):
+        self.target = target
+        self.response = response
 
 
 class Crawler(Thread):
@@ -46,15 +69,16 @@ class Crawler(Thread):
             if self._stop_signal:
                 break
             try:
-                url = self.get_url()
+                access_request = self.get_url()
             except NoURLExists:
                 break
             try:
-                data = self.get_json(url)
+                data = self.get_json(access_request.url)
             except RequestFailed as e:
                 logger.error(e.args)
                 continue
-            self._json_queue.put(data)
+            res = Response(access_request.target, data)
+            self._json_queue.put(res)
             self._url_queue.task_done()
             self.sleep()
         self.finish()
@@ -87,7 +111,7 @@ class Crawler(Thread):
             data = resp.json()
         return data
 
-    def get_url(self) -> 'Optional[str]':
+    def get_url(self) -> 'Optional[Request]':
         retry_count = 0
         while True:
             try:

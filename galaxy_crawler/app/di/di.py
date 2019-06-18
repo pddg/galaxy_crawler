@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from galaxy_crawler.repositories import ResponseDataStore
     from galaxy_crawler.queries import QueryBuilder, QueryOrder
     from galaxy_crawler.filters import Filter
+    from galaxy_crawler.constants import Target
 
 
 class AppComponent(object):
@@ -38,9 +39,7 @@ class AppComponent(object):
 
     def get_query_builder(self) -> 'QueryBuilder':
         assert self.config.version == "v1", f"Specified version '{self.config.version}' is not supported."
-        query_order = self.get_query_order()
-        ascending_order = self.config.inverse
-        return V1QueryBuilder(query_order, ascending_order)
+        return V1QueryBuilder()
 
     def get_crawler(self) -> 'Crawler':
         return Crawler(
@@ -56,7 +55,9 @@ class AppComponent(object):
             json_queue=self.json_queue,
             data_stores=self.get_response_data_stores(),
             query_builder=self.get_query_builder(),
-            filters=self.get_filters()
+            filters=self.get_filters(),
+            targets=self.get_targets(),
+            order=self.get_query_order()
         )
 
     def get_query_order(self) -> 'QueryOrder':
@@ -72,6 +73,9 @@ class AppComponent(object):
         if len(filters) == 0:
             return [DefaultFilter()]
         return [V1FilterEnum.by_expr(f) for f in filters]
+
+    def get_targets(self) -> 'List[Target]':
+        return self.config.targets
 
     def configure_logger(self) -> None:
         log_level = DEBUG if self.config.debug else INFO
