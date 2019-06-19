@@ -69,14 +69,14 @@ class JsonDataStore(ResponseDataStore):
         raise NotImplementedError
 
     def save(self, target: 'Target', obj: 'List[dict]', commit: bool = False) -> 'Any':
-        if target.name in self.responses:
-            self.responses[target.name]['json'].append(obj)
-            self.responses[target.name]['finished_at'] = self._get_current_time()
+        if target.value in self.responses:
+            self.responses[target.value]['json'].append(obj)
+            self.responses[target.value]['finished_at'] = self._get_current_time()
         else:
             tmpl = copy.deepcopy(self.template)
             tmpl['json'] = obj
             tmpl['finished_at'] = self._get_current_time()
-            self.responses[target.name] = tmpl
+            self.responses[target.value] = tmpl
         if commit:
             self.commit()
 
@@ -92,3 +92,4 @@ class JsonDataStore(ResponseDataStore):
             with codecs.open(str(f), 'w', 'utf-8') as fp:
                 json.dump(value, fp, default=_serialize)
             self.counter.increment(key=name)
+        self.responses = dict()
