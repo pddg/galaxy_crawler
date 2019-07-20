@@ -37,6 +37,21 @@ def scrape(components: 'AppComponent'):
     return 0
 
 
+def migrate(c: 'AppComponent') -> int:
+    try:
+        store = c.get_rdb_store()
+    except Exception as e:
+        logger.error(e)
+        return 1
+    if store.is_migration_required():
+        logger.info("Migration required")
+        store.migrate()
+    else:
+        logger.info("The table schemas are up-to-date.")
+    logger.info("Done")
+    return 0
+
+
 def main():
     parser = Config.get_parser()
     args = parser.parse_args()
@@ -49,6 +64,8 @@ def main():
         return 1
     if args.func == 'start':
         return scrape(components)
+    elif args.func == 'migrate':
+        return migrate(components)
 
 
 if __name__ == '__main__':

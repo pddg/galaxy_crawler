@@ -11,6 +11,10 @@ colorlog = "*"
 pytz = "*"
 sqlalchemy = "*"
 alembic = "*"
+pytest = "*"
 
 [requires]
 python_version = "3.7"
+
+[scripts]
+test = "py.test tests"
