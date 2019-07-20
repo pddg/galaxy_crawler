@@ -59,15 +59,6 @@ class JsonDataStore(ResponseDataStore):
     def _get_current_time(self):
         return timezone('Asia/Tokyo').localize(datetime.now())
 
-    def exists(self, key: 'Union[int, str]') -> bool:
-        raise NotImplementedError
-
-    def get(self, key: 'Union[int, str]') -> 'dict':
-        raise NotImplementedError
-
-    def get_all(self) -> 'OrderedDict':
-        raise NotImplementedError
-
     def save(self, target: 'Target', obj: 'List[dict]', commit: bool = False) -> 'Any':
         if target.value in self.responses:
             self.responses[target.value]['json'].append(obj)
