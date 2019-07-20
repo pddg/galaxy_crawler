@@ -52,6 +52,20 @@ def migrate(c: 'AppComponent') -> int:
     return 0
 
 
+def mkmigrate(c: 'AppComponent') -> 'int':
+    store_cls = c.get_rdb_store_class()
+    logger.info("Generate migration scripts")
+    try:
+        store_cls.makemigrations(
+            c.config.kwargs.get("message"),
+            c.get_engine()
+        )
+    except Exception as e:
+        logger.error(e)
+        return 1
+    return 0
+
+
 def main():
     parser = Config.get_parser()
     args = parser.parse_args()
@@ -66,6 +80,8 @@ def main():
         return scrape(components)
     elif args.func == 'migrate':
         return migrate(components)
+    elif args.func == 'makemigrations':
+        return mkmigrate(components)
 
 
 if __name__ == '__main__':

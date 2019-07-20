@@ -176,6 +176,18 @@ class Config(object):
         start_cmd.add_argument("--filters", type=str, nargs='*',
                                help=f"Filter expression (e.g. download>500). "
                                f"Available filter types are {V1FilterEnum.choices()}")
-        migrate_cmd = cmd_parser.add_parser("migrate", help="Update schemas", parents=[log_parser])
-        migrate_cmd.add_argument("--storage", type=str, required=True, help="Storage path")
+
+        # RDB operations
+
+        storage_parser = argparse.ArgumentParser(add_help=False)
+        storage_parser.add_argument("--storage", type=str, help="Storage path")
+
+        # Migration
+        migrate_cmd = cmd_parser.add_parser("migrate",
+                                            help="Update schemas",
+                                            parents=[log_parser, storage_parser])
+        makemigrate_cmd = cmd_parser.add_parser("makemigrations",
+                                                help="Generate migration script",
+                                                parents=[log_parser, storage_parser])
+        makemigrate_cmd.add_argument('-m', '--message', type=str, help="Revision message")
         return parser

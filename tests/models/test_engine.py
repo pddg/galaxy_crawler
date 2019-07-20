@@ -23,7 +23,7 @@ class TestEngineType(object):
         with patch("galaxy_crawler.models.engine.create_engine", return_value=expected) as patched:
             e = engine_type.get_engine(url)
             assert e == expected
-            assert patched.mock_calls[0], call(url)
+            assert patched.mock_calls[0] == call(url)
 
     @pytest.mark.parametrize(
         "engine_type, url", [

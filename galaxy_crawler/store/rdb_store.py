@@ -78,8 +78,21 @@ class RDBStore(RDBStorage):
 
     def migrate(self) -> 'None':
         conf = self._get_alembic_config()
+        conf.set_main_option('sqlalchemy.url', str(self.engine.url))
         try:
             alembic.command.upgrade(conf, 'head')
+        except Exception as e:
+            logger.error(e)
+
+    @classmethod
+    def makemigrations(cls, msg: str, engine=None) -> 'None':
+        conf = cls._get_alembic_config()
+        autogen = False
+        if engine is not None:
+            conf.set_main_option('sqlalchemy.url', str(engine.url))
+            autogen = True
+        try:
+            alembic.command.revision(conf, msg, autogenerate=autogen)
         except Exception as e:
             logger.error(e)
 
@@ -93,11 +106,11 @@ class RDBStore(RDBStorage):
         script = alembic.script.ScriptDirectory.from_config(conf)
         return script
 
-    def _get_alembic_config(self) -> 'AlembicConfig':
+    @classmethod
+    def _get_alembic_config(cls) -> 'AlembicConfig':
         model_dir = Path(__file__).parent
         conf = alembic.config.Config(str(model_dir / 'alembic.ini'))
 
         conf.set_main_option('script_location', str(model_dir / 'alembic'))
-        conf.set_main_option('sqlalchemy.url', str(self.engine.url))
         return conf
 

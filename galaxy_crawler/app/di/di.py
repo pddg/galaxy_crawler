@@ -13,7 +13,7 @@ from galaxy_crawler.utils import to_absolute, mkdir
 from galaxy_crawler.models.engine import EngineType
 
 if TYPE_CHECKING:
-    from typing import List
+    from typing import List, Type
     from galaxy_crawler.app.config import Config
     from galaxy_crawler.repositories import ResponseDataStore, RDBStorage
     from galaxy_crawler.queries import QueryBuilder, QueryOrder
@@ -92,5 +92,9 @@ class AppComponent(object):
         et = EngineType.from_url(url)
         return et.get_engine(url)
 
+    def get_rdb_store_class(self) -> 'Type[RDBStorage]':
+        return RDBStore
+
     def get_rdb_store(self) -> 'RDBStorage':
-        return RDBStore(self.get_engine())
+        storage_cls = self.get_rdb_store_class()
+        return storage_cls(self.get_engine())

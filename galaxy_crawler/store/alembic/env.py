@@ -6,7 +6,7 @@ from sqlalchemy import pool
 
 from alembic import context
 
-from galaxy_crawler.models.v1 import BaseModel
+from galaxy_crawler.models import v1
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -20,7 +20,7 @@ fileConfig(config.config_file_name)
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-target_metadata = BaseModel
+target_metadata = v1.BaseModel.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

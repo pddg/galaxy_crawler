@@ -32,3 +32,8 @@ class RDBStorage(metaclass=ABCMeta):
     @abstractmethod
     def migrate(self) -> 'None':
         raise NotImplementedError
+
+    @classmethod
+    @abstractmethod
+    def makemigrations(cls, msg: str, engine = None) -> 'None':
+        raise NotImplementedError
