@@ -12,6 +12,7 @@ pytz = "*"
 sqlalchemy = "*"
 alembic = "*"
 pytest = "*"
+galaxy-crawler = {editable = true,path = "."}
 
 [requires]
 python_version = "3.7"
