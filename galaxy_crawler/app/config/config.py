@@ -153,6 +153,7 @@ class Config(object):
     @classmethod
     def get_parser(cls) -> 'argparse.ArgumentParser':
         parser = argparse.ArgumentParser(description="Ansible Galaxy crawler")
+        parser.add_argument('--version', action='store_true', default=False, help="Show version")
 
         log_parser = argparse.ArgumentParser(add_help=False)
         log_group = log_parser.add_argument_group("LOGGING")

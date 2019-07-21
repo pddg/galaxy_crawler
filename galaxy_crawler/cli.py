@@ -69,6 +69,10 @@ def mkmigrate(c: 'AppComponent') -> 'int':
 def main():
     parser = Config.get_parser()
     args = parser.parse_args()
+    if args.version:
+        from galaxy_crawler import version
+        print(f'Galaxy Crawler v{version}')
+        return 0
     try:
         config = Config.load(args)
         components = AppComponent(config)
