@@ -1,39 +1,23 @@
 import pytest
 
-from sqlalchemy.orm.session import sessionmaker, Session
-
 from galaxy_crawler.models import v1 as model
-from galaxy_crawler.models import engine
 from galaxy_crawler.models import utils
+from .base import ModelTestBase, create_session
 
 
-def create_session(e) -> 'Session':
-    return sessionmaker(bind=e)()
-
-
-class ModelTestBase(object):
-
-    def setup_method(self):
-        self.engine = engine.get_in_memory_database()
-        model.BaseModel.metadata.create_all(bind=self.engine)
-
-    def teardown_method(self):
-        model.BaseModel.metadata.drop_all(bind=self.engine)
-
-
-class TestTags(ModelTestBase):
+class TestTagModel(ModelTestBase):
 
     @pytest.mark.parametrize(
         "tag", [
             {
-              "id": 1,
-              "url": "/api/v1/tags/1/",
-              "related": {},
-              "summary_fields": {},
-              "created": "2018-01-23T10:00:00.000000Z",
-              "modified": "2018-01-23T10:1:23.456789Z",
-              "name": "test_tag",
-              "active": True
+                "id": 1,
+                "url": "/api/v1/tags/1/",
+                "related": {},
+                "summary_fields": {},
+                "created": "2018-01-23T10:00:00.000000Z",
+                "modified": "2018-01-23T10:1:23.456789Z",
+                "name": "test_tag",
+                "active": True
             }, {
                 "id": 2,
                 "url": "/api/v1/tags/2/",
