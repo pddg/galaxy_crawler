@@ -8,7 +8,7 @@ if TYPE_CHECKING:
 
 
 def get_in_memory_database() -> 'Engine':
-    return create_engine("sqlite://", echo=True)
+    return create_engine("sqlite://")
 
 
 class InvalidUrlError(Exception):

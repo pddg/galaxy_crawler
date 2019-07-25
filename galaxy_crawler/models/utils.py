@@ -43,12 +43,18 @@ def update_params(old, new) -> 'ModelInterfaceMixin':
     return old
 
 
+def as_utc(d: 'datetime') -> 'datetime':
+    if d.tzinfo is not None:
+        return d.astimezone(UTC)
+    return UTC.localize(d)
+
+
 def to_datetime(d_str: 'str') -> 'datetime':
     try:
         dt_obj = datetime.strptime(d_str, DATETIME_FORMAT)
     except ValueError as e:
         raise DateParseFailed(str(e))
-    return dt_obj.astimezone(UTC)
+    return as_utc(dt_obj)
 
 
 def parse_json(keys: 'List[str]', json_obj: 'dict', model_name: 'str') -> 'dict':
@@ -65,9 +71,9 @@ def parse_json(keys: 'List[str]', json_obj: 'dict', model_name: 'str') -> 'dict'
         except KeyError:
             raise JSONParseFailed(model_name, json_obj)
         if key in ['created', 'modified']:
-            json_obj[parsed_key] = to_datetime(value)
+            parsed[parsed_key] = to_datetime(value)
         else:
-            json_obj[parsed_key] = value
+            parsed[parsed_key] = value
     return parsed
 
 

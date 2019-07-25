@@ -91,6 +91,10 @@ class License(BaseModel, ModelInterfaceMixin):
     name = Column(String(MAX_INDEXED_STR), unique=True)
     description = Column(String(MAX_INDEXED_STR))
 
+    roles = relationship("Role",
+                         secondary=LicenseStatus.__tablename__,
+                         back_populates='licenses')
+
     _pk = 'license_id'
 
     @classmethod
@@ -251,6 +255,8 @@ class ProviderNamespace(BaseModel, ModelInterfaceMixin):
                           ForeignKey('namespaces.namespace_id'))
     namespace = relationship("Namespace",
                              back_populates="provider_namespace")  # type: Namespace
+    repositories = relationship("Repository",
+                                back_populates="provider_namespace")
 
     _pk = 'provider_namespace_id'
 
