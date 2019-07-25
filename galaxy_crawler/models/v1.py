@@ -102,16 +102,27 @@ class License(BaseModel, ModelInterfaceMixin):
         license_str = json_obj['license']
         licenses = LicenseType.normalize(license_str)
         if len(licenses) == 0:
-            licenses = [
-                License(name=license_str, description='Other type license (could not categorize)')
-            ]
+            exists = session.query(cls).filter_by(name=license_str).one_or_none()
+            if exists is None:
+                other_license = License(
+                    name=license_str,
+                    description='Other type license (could not categorize)'
+                )
+                session.add(other_license)
+                records = [other_license]
+            else:
+                records = [exists]
         else:
-            licenses = [
-                License(name=l.name, description=l.description) for l in licenses
-            ]
-        for l in licenses:
-            session.add(l)
-        return licenses
+            records = []
+            for l in licenses:
+                exists = session.query(cls).filter_by(name=l.name).one_or_none()
+                if exists is None:
+                    new_license = License(name=l.name, description=l.description)
+                    session.add(new_license)
+                    records.append(new_license)
+                else:
+                    records.append(exists)
+        return records
 
 
 class PlatformStatus(BaseModel):
