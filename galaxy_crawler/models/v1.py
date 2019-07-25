@@ -39,7 +39,7 @@ class TagAssociation(BaseModel):
 class Tag(BaseModel, ModelInterfaceMixin):
     __tablename__ = "tags"
     tag_id = Column(Integer, primary_key=True, autoincrement=False)
-    name = Column(String(MAX_INDEXED_STR))
+    name = Column(String(MAX_INDEXED_STR), unique=True)
 
     roles = relationship('Role',
                          secondary=TagAssociation.__tablename__,
