@@ -10,13 +10,14 @@ from pathlib import Path
 from pytz import timezone
 
 if TYPE_CHECKING:
-    from typing import List, Dict
+    from typing import List
     from sqlalchemy.orm.session import Session
     from .base import ModelInterfaceMixin
 
 logger = getLogger(__name__)
 
 DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%f%z"
+SECONDARY_DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S%z"
 UTC = timezone('UTC')
 
 
@@ -52,8 +53,11 @@ def as_utc(d: 'datetime') -> 'datetime':
 def to_datetime(d_str: 'str') -> 'datetime':
     try:
         dt_obj = datetime.strptime(d_str, DATETIME_FORMAT)
-    except ValueError as e:
-        raise DateParseFailed(str(e))
+    except ValueError:
+        try:
+            dt_obj = datetime.strptime(d_str, SECONDARY_DATETIME_FORMAT)
+        except ValueError as e:
+            raise DateParseFailed(str(e))
     return as_utc(dt_obj)
 
 

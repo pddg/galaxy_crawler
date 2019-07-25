@@ -149,6 +149,11 @@ class Platform(BaseModel, ModelInterfaceMixin):
 
     @classmethod
     def from_json(cls, json_obj: 'dict', session: 'Session') -> 'Platform':
+        exists = session.query(cls) \
+            .filter_by(platform_id=json_obj['id']) \
+            .one_or_none()
+        if exists:
+            return exists
         parsed = parse_json(
             [
                 {'key': cls._pk, 'target': 'id'},
@@ -188,6 +193,11 @@ class Provider(BaseModel, ModelInterfaceMixin):
 
     @classmethod
     def from_json(cls, json_obj: 'dict', session: 'Session') -> 'Provider':
+        exists = session.query(cls) \
+            .filter_by(provider_id=json_obj['id']) \
+            .one_or_none()
+        if exists:
+            return exists
         parsed = parse_json(
             [
                 {'key': cls._pk, 'target': 'id'},
@@ -225,6 +235,11 @@ class Namespace(BaseModel, ModelInterfaceMixin):
 
     @classmethod
     def from_json(cls, json_obj: 'dict', session: 'Session') -> 'Namespace':
+        exists = session.query(cls) \
+            .filter_by(namespace_id=json_obj['id']) \
+            .one_or_none()
+        if exists:
+            return exists
         parsed = parse_json(
             [
                 {'key': cls._pk, 'target': 'id'},
@@ -273,6 +288,11 @@ class ProviderNamespace(BaseModel, ModelInterfaceMixin):
 
     @classmethod
     def from_json(cls, json_obj: 'dict', session: 'Session') -> 'ProviderNamespace':
+        exists = session.query(cls) \
+            .filter_by(provider_namespace_id=json_obj['id']) \
+            .one_or_none()
+        if exists:
+            return exists
         parsed = parse_json(
             [
                 {'key': cls._pk, 'target': 'id'},
@@ -342,6 +362,11 @@ class Repository(BaseModel, ModelInterfaceMixin):
 
     @classmethod
     def from_json(cls, json_obj: 'dict', session: 'Session') -> 'ModelInterfaceMixin':
+        exists = session.query(cls) \
+            .filter_by(repository_id=json_obj['id']) \
+            .one_or_none()
+        if exists:
+            return exists
         parsed = parse_json(
             [
                 {'key': cls._pk, 'target': 'id'},
