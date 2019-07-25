@@ -1,6 +1,7 @@
-import pytest
+import copy
 from datetime import datetime
 
+import pytest
 from pytz import timezone
 
 from galaxy_crawler.models import utils
@@ -108,3 +109,34 @@ class TestDatetimeRelated(object):
     def test_as_utc(self, dt):
         actual = utils.as_utc(dt)
         assert actual.tzinfo == self.UTC
+
+
+class TestRoleName(object):
+
+    ns = "namespace"
+    role = "role"
+    j = {
+        "summary_fields": {
+            "namespace": {
+                "name": ns
+            }
+        },
+        "name": role
+    }
+
+    def test_obtaining(self):
+        expected = f"{self.ns}.{self.role}"
+        assert utils.get_role_name_from_json(self.j) == expected
+
+    @pytest.mark.parametrize(
+        "pop_key", ["name", "summary_fields", ("name", "summary_fields")]
+    )
+    def test_obtaining_error(self, pop_key):
+        j = copy.deepcopy(self.j)
+        if isinstance(pop_key, str):
+            j.pop(pop_key)
+        else:
+            for k in pop_key:
+                j.pop(k)
+        with pytest.raises(KeyError):
+            utils.get_role_name_from_json(j)
