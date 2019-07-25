@@ -51,6 +51,8 @@ def as_utc(d: 'datetime') -> 'datetime':
 
 
 def to_datetime(d_str: 'str') -> 'datetime':
+    if isinstance(d_str, datetime):
+        return d_str
     try:
         dt_obj = datetime.strptime(d_str, DATETIME_FORMAT)
     except ValueError:

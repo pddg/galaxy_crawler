@@ -247,6 +247,9 @@ class Namespace(BaseModel, ModelInterfaceMixin):
                 'company',
                 'email',
                 'location',
+                'avatar_url',
+                'html_url',
+                'is_vendor',
                 'created',
                 'modified'
             ],

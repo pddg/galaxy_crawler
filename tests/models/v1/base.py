@@ -16,3 +16,18 @@ class ModelTestBase(object):
 
     def teardown_method(self):
         model.BaseModel.metadata.drop_all(bind=self.engine)
+
+
+def create_provider(session: 'Session', id_: int = 1, name: str = "GitHub") -> 'model.Provider':
+    provider = model.Provider(provider_id=id_, name=name, description="Test provider")
+    session.add(provider)
+    return provider
+
+
+def create_provider_ns(session: 'Session', id_: int = 1, ns: str = "test", provider_id: int = 1):
+    ns = model.ProviderNamespace(
+        provider_namespace_id=id_,
+        name=ns, display_name=ns, provider_id=provider_id
+    )
+    session.add(ns)
+    return ns
