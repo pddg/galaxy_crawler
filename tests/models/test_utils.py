@@ -1,4 +1,7 @@
 import pytest
+from datetime import datetime
+
+from pytz import timezone
 
 from galaxy_crawler.models import utils
 
@@ -75,3 +78,33 @@ class TestResolveDependencies(object):
         for res, e in zip(resolved, expected):
             actual = res['summary_fields']['dependencies']
             assert e == actual
+
+
+class TestDatetimeRelated(object):
+
+    DATE_FMT = "%Y-%m-%dT%H:%M:%S.%f%z"
+    UTC = timezone("UTC")
+    JST = timezone("Asia/Tokyo")
+
+    @pytest.mark.parametrize(
+        'dt, tz', [
+            ("2018-01-23T12:34:56.789012Z", UTC),
+            ("2018-01-23T12:34:56.789012+0900", JST),
+        ]
+    )
+    def test_to_datetime(self, dt, tz):
+        dt_obj = datetime.strptime(dt, self.DATE_FMT)
+        dt_obj = dt_obj.astimezone(tz)
+        actual = utils.to_datetime(dt_obj.strftime(self.DATE_FMT))
+        assert actual == dt_obj
+        assert actual.tzinfo == self.UTC
+
+    @pytest.mark.parametrize(
+        'dt', [
+            datetime(2018, 1, 23, 12, 34, 56, 789012),
+            datetime(2018, 1, 23, 12, 34, 56, 789012, tzinfo=JST),
+        ]
+    )
+    def test_as_utc(self, dt):
+        actual = utils.as_utc(dt)
+        assert actual.tzinfo == self.UTC
