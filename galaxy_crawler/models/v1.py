@@ -287,6 +287,7 @@ class ProviderNamespace(BaseModel, ModelInterfaceMixin):
     repositories = relationship("Repository",
                                 back_populates="provider_namespace")
 
+    is_active = Column(Boolean, nullable=False)
     _pk = 'provider_namespace_id'
 
     @classmethod
@@ -300,22 +301,22 @@ class ProviderNamespace(BaseModel, ModelInterfaceMixin):
             [
                 {'key': cls._pk, 'target': 'id'},
                 'name',
+                'email',
                 'display_name',
                 'company',
                 'location',
                 'avatar_url',
                 'html_url',
                 'created',
-                'followers_count',
+                {'key': 'followers_count', 'target': 'followers'},
+                {'key': 'is_active', 'target': 'active'},
                 'modified'
             ],
             json_obj, 'ProviderNamespace'
         )
         provider_id = json_obj['summary_fields']['provider']['id']
-        provider = Provider.get_by_pk(provider_id, session)
         namespace_id = json_obj['summary_fields']['namespace']['id']
-        namespace = Namespace.get_by_pk(namespace_id, session)
-        provider_ns = ProviderNamespace(**parsed, provider=provider, namespace=namespace)
+        provider_ns = ProviderNamespace(**parsed, provider_id=provider_id, namespace_id=namespace_id)
         session.add(provider_ns)
         return provider_ns
 

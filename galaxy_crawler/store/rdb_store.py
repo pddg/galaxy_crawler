@@ -1,3 +1,4 @@
+import functools
 import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -74,30 +75,36 @@ class RDBStore(RDBStorage):
         head = script_dir.get_current_head()
         current = self._get_current_version()
         logger.debug(f"Schema version: Head-> {head} Current -> {current}")
-        return head != current
+        required = head != current
+        if current is None:
+            # When not initialized
+            ctx = self._get_context()
+            logger.info(f"Initialize database ({head})")
+            ctx.stamp(script_dir, head)
+            required = True
+        return required
 
     def migrate(self) -> 'None':
         conf = self._get_alembic_config()
         conf.set_main_option('sqlalchemy.url', str(self.engine.url))
-        try:
-            alembic.command.upgrade(conf, 'head')
-        except Exception as e:
-            logger.error(e)
+        alembic.command.upgrade(conf, 'head')
 
     @classmethod
     def makemigrations(cls, msg: str, engine=None) -> 'None':
         conf = cls._get_alembic_config()
         autogen = False
         if engine is not None:
+            logger.info(f"Comparing with '{engine.url}'")
             conf.set_main_option('sqlalchemy.url', str(engine.url))
             autogen = True
-        try:
-            alembic.command.revision(conf, msg, autogenerate=autogen)
-        except Exception as e:
-            logger.error(e)
+        alembic.command.revision(conf, msg, autogenerate=autogen)
+
+    @functools.lru_cache()
+    def _get_context(self) -> 'alembic.migration.MigrationContext':
+        return alembic.migration.MigrationContext.configure(self.engine.connect())
 
     def _get_current_version(self) -> str:
-        ctx = alembic.migration.MigrationContext.configure(self.engine.connect())
+        ctx = self._get_context()
         rev = ctx.get_current_revision()
         return rev
 

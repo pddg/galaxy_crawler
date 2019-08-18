@@ -45,7 +45,13 @@ def migrate(c: 'AppComponent') -> int:
         return 1
     if store.is_migration_required():
         logger.info("Migration required")
-        store.migrate()
+        try:
+            store.migrate()
+        except Exception as e:
+            logger.exception(e)
+            logger.error("Migration failed.")
+            return 1
+        logger.info("Migration completed successfully")
     else:
         logger.info("The table schemas are up-to-date.")
     logger.info("Done")
