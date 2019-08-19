@@ -32,10 +32,17 @@ def create_ns(session: 'Session', id: int = 1, name: str = 'ns') -> 'model.Names
     return ns
 
 
-def create_provider_ns(session: 'Session', id: int = 1, ns: str = "test", provider_id: int = 1):
+def create_provider_ns(session: 'Session',
+                       id: int = 1,
+                       ns: str = "test",
+                       provider_id: int = 1,
+                       namespace_id: int = 1) -> 'model.ProviderNamespace':
     ns = model.ProviderNamespace(
         provider_namespace_id=id,
-        name=ns, display_name=ns, provider_id=provider_id
+        name=ns,
+        display_name=ns,
+        provider_id=provider_id,
+        namespace_id=namespace_id
     )
     session.add(ns)
     return ns
