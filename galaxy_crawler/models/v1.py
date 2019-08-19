@@ -287,7 +287,7 @@ class ProviderNamespace(BaseModel, ModelInterfaceMixin):
     repositories = relationship("Repository",
                                 back_populates="provider_namespace")
 
-    is_active = Column(Boolean, nullable=False)
+    is_active = Column(Boolean, nullable=True)
     _pk = 'provider_namespace_id'
 
     @classmethod
@@ -365,7 +365,7 @@ class Repository(BaseModel, ModelInterfaceMixin):
     _pk = 'repository_id'
 
     @classmethod
-    def from_json(cls, json_obj: 'dict', session: 'Session') -> 'ModelInterfaceMixin':
+    def from_json(cls, json_obj: 'dict', session: 'Session') -> 'Repository':
         exists = session.query(cls) \
             .filter_by(repository_id=json_obj['id']) \
             .one_or_none()
