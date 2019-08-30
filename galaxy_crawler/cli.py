@@ -37,9 +37,48 @@ def scrape(components: 'AppComponent'):
     return 0
 
 
+def migrate(c: 'AppComponent') -> int:
+    try:
+        store = c.get_rdb_store()
+    except Exception as e:
+        logger.error(e)
+        return 1
+    if store.is_migration_required():
+        logger.info("Migration required")
+        try:
+            store.migrate()
+        except Exception as e:
+            logger.exception(e)
+            logger.error("Migration failed.")
+            return 1
+        logger.info("Migration completed successfully")
+    else:
+        logger.info("The table schemas are up-to-date.")
+    logger.info("Done")
+    return 0
+
+
+def mkmigrate(c: 'AppComponent') -> 'int':
+    store_cls = c.get_rdb_store_class()
+    logger.info("Generate migration scripts")
+    try:
+        store_cls.makemigrations(
+            c.config.kwargs.get("message"),
+            c.get_engine()
+        )
+    except Exception as e:
+        logger.error(e)
+        return 1
+    return 0
+
+
 def main():
     parser = Config.get_parser()
     args = parser.parse_args()
+    if args.version:
+        from galaxy_crawler import version
+        print(f'Galaxy Crawler v{version}')
+        return 0
     try:
         config = Config.load(args)
         components = AppComponent(config)
@@ -49,6 +88,10 @@ def main():
         return 1
     if args.func == 'start':
         return scrape(components)
+    elif args.func == 'migrate':
+        return migrate(components)
+    elif args.func == 'makemigrations':
+        return mkmigrate(components)
 
 
 if __name__ == '__main__':

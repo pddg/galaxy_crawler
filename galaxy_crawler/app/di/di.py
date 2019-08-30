@@ -8,13 +8,14 @@ from galaxy_crawler.filters.v1 import V1FilterEnum
 from galaxy_crawler.logger import enable_file_logger, enable_stream_handler
 from galaxy_crawler.parser import ResponseParser
 from galaxy_crawler.queries.v1 import V1QueryBuilder, V1QueryOrder
-from galaxy_crawler.store import JsonDataStore
+from galaxy_crawler.store import JsonDataStore, RDBStore
 from galaxy_crawler.utils import to_absolute, mkdir
+from galaxy_crawler.models.engine import EngineType
 
 if TYPE_CHECKING:
-    from typing import List
+    from typing import List, Type
     from galaxy_crawler.app.config import Config
-    from galaxy_crawler.repositories import ResponseDataStore
+    from galaxy_crawler.repositories import ResponseDataStore, RDBStorage
     from galaxy_crawler.queries import QueryBuilder, QueryOrder
     from galaxy_crawler.filters import Filter
     from galaxy_crawler.constants import Target
@@ -85,3 +86,15 @@ class AppComponent(object):
             log_file = to_absolute(log_dir)
             mkdir(log_file.parent)
             enable_file_logger(log_dir, log_level)
+
+    def get_engine(self):
+        url = self.config.storage
+        et = EngineType.from_url(url)
+        return et.get_engine(url)
+
+    def get_rdb_store_class(self) -> 'Type[RDBStorage]':
+        return RDBStore
+
+    def get_rdb_store(self) -> 'RDBStorage':
+        storage_cls = self.get_rdb_store_class()
+        return storage_cls(self.get_engine())

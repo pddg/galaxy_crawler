@@ -13,7 +13,7 @@ _lock = Lock()
 _cli_log_handler = None  # type: Optional[logging.Handler]
 _file_log_handler = None  # type: Optional[logging.Handler]
 
-_log_format = "%(log_color)s[%(asctime)s %(levelname)s]%(reset)s %(message)s"
+_log_format = "%(log_color)s[%(asctime)s %(levelname)s]%(reset)s (%(name)s) %(message)s"
 _log_file_name = "%Y-%m-%d_%H-%M-%S.log"
 
 
@@ -66,6 +66,9 @@ def enable_stream_handler(log_level: int = logging.INFO):
         lib_logger = _get_lib_logger()
         lib_logger.addHandler(_cli_log_handler)
         lib_logger.setLevel(log_level)
+        alembic_logger = logging.getLogger('alembic')
+        alembic_logger.addHandler(_cli_log_handler)
+        alembic_logger.setLevel(log_level)
 
 
 def enable_file_logger(logging_path: 'Path', log_level: int = logging.INFO):
@@ -78,3 +81,6 @@ def enable_file_logger(logging_path: 'Path', log_level: int = logging.INFO):
         lib_logger = _get_lib_logger()
         lib_logger.addHandler(_cli_log_handler)
         lib_logger.setLevel(log_level)
+        alembic_logger = logging.getLogger('alembic')
+        alembic_logger.addHandler(_file_log_handler)
+        alembic_logger.setLevel(log_level)

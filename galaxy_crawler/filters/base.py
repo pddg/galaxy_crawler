@@ -70,14 +70,14 @@ class SingleOperand(metaclass=ABCMeta):
         self.f = filter1
 
     @abstractmethod
-    def passed(self, role: 'dict') -> bool:
+    def passed(self, target: 'Target', role: 'dict') -> bool:
         raise NotImplementedError
 
 
 class NOT(SingleOperand):
 
-    def passed(self, role: 'dict') -> bool:
-        return not self.f.passed(role)
+    def passed(self, target: 'Target', role: 'dict') -> bool:
+        return not self.f.passed(target, role)
 
 
 class Operand(metaclass=ABCMeta):
@@ -87,20 +87,20 @@ class Operand(metaclass=ABCMeta):
         self.f2 = filter2
 
     @abstractmethod
-    def passed(self, role: 'dict') -> bool:
+    def passed(self, target: 'Target', role: 'dict') -> bool:
         raise NotImplementedError
 
 
 class AND(Operand):
 
-    def passed(self, role: 'dict') -> bool:
-        return self.f1.passed(role) and self.f2.passed(role)
+    def passed(self, target: 'Target', role: 'dict') -> bool:
+        return self.f1.passed(target, role) and self.f2.passed(target, role)
 
 
 class OR(Operand):
 
-    def passed(self, role: 'dict') -> bool:
-        return self.f1.passed(role) or self.f2.passed(role)
+    def passed(self, target: 'Target', role: 'dict') -> bool:
+        return self.f1.passed(target, role) or self.f2.passed(target, role)
 
 
 class OperandHolder(HolderMixin):

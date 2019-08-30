@@ -53,11 +53,25 @@ class Config(object):
     DEFAULT_OUTPUT_FORMAT = ['json']
     DEFAULT_ORDER_BY = "download"
     DEFAULT_FILTERS = []
+    DEFAULT_BACKEND = 'postgres'
 
-    def __init__(self, output_dir: 'Path', version: str, interval: int, retry: int, output_format: 'List[str]',
-                 debug: 'bool', order_by: str, inverse: bool, filters: 'List[str]', log_dir: 'Path' = None, **kwargs):
-        assert interval >= 0, "Interval must be a positive value."
-        assert retry >= 0, "Retry must be a positive value."
+    def __init__(self,
+                 output_dir: 'Path' = None,
+                 version: str = None,
+                 interval: int = None,
+                 retry: int = None,
+                 output_format: 'List[str]' = None,
+                 debug: 'bool' = None,
+                 order_by: str = None,
+                 inverse: bool = None,
+                 filters: 'List[str]' = None,
+                 log_dir: 'Path' = None,
+                 storage: 'str' = None,
+                 **kwargs):
+        if interval is not None:
+            assert interval >= 0, "Interval must be a positive value."
+        if retry is not None:
+            assert retry >= 0, "Retry must be a positive value."
         self.output_dir = output_dir
         self.version = version
         self.interval = interval
@@ -68,6 +82,9 @@ class Config(object):
         self.order_by = order_by
         self.inverse = inverse
         self.filters = filters
+        self.storage = storage
+        self.kwargs = kwargs
+
         # TODO: To support to select targets by option
         self.targets = [
             Target.TAGS,
@@ -136,6 +153,7 @@ class Config(object):
     @classmethod
     def get_parser(cls) -> 'argparse.ArgumentParser':
         parser = argparse.ArgumentParser(description="Ansible Galaxy crawler")
+        parser.add_argument('--version', action='store_true', default=False, help="Show version")
 
         log_parser = argparse.ArgumentParser(add_help=False)
         log_group = log_parser.add_argument_group("LOGGING")
@@ -159,4 +177,18 @@ class Config(object):
         start_cmd.add_argument("--filters", type=str, nargs='*',
                                help=f"Filter expression (e.g. download>500). "
                                f"Available filter types are {V1FilterEnum.choices()}")
+
+        # RDB operations
+
+        storage_parser = argparse.ArgumentParser(add_help=False)
+        storage_parser.add_argument("--storage", type=str, help="Storage path")
+
+        # Migration
+        migrate_cmd = cmd_parser.add_parser("migrate",
+                                            help="Update schemas",
+                                            parents=[log_parser, storage_parser])
+        makemigrate_cmd = cmd_parser.add_parser("makemigrations",
+                                                help="Generate migration script",
+                                                parents=[log_parser, storage_parser])
+        makemigrate_cmd.add_argument('-m', '--message', type=str, help="Revision message")
         return parser

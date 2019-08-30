@@ -16,7 +16,7 @@ $ pipenv install
 ## How to use
 
 ```bash
-$ pipenv run python -m galaxy_crawler.cli start -h
+$ pipenv run galaxy start -h
 usage: cli.py start [-h] [--debug] [--log-dir LOG_DIR] [--version {v1}]
                     [--interval INTERVAL] [--retry RETRY]
                     [--format {json} [{json} ...]]
@@ -51,7 +51,7 @@ LOGGING:
 Example is as follows.
 
 ```bash
-$ pipenv run python -m galaxy_crawler.cli start \
+$ pipenv run galaxy start \
     /path/to/output \
     --interval 30 \
     --retry 5 \
