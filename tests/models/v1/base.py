@@ -46,3 +46,40 @@ def create_provider_ns(session: 'Session',
     )
     session.add(ns)
     return ns
+
+
+def create_platform(session: 'Session',
+                    id: int = 1,
+                    name: str = 'Ubuntu',
+                    release: str = 'bionic'):
+    platform = model.Platform(
+        platform_id=id,
+        name=name,
+        release=release
+    )
+    session.add(platform)
+    return platform
+
+
+def create_tag(session: 'Session',
+               id: int = 1,
+               name: str = "system"):
+    tag = model.Tag(
+        tag_id=id,
+        name=name
+    )
+    session.add(tag)
+    return tag
+
+
+def create_repository(session: 'Session',
+                      id: int = 1,
+                      name: str = 'test',
+                      provider_ns_id: int = 1):
+    repo = model.Repository(
+        repository_id=id,
+        name=name,
+        provider_namespace_id=provider_ns_id
+    )
+    session.add(repo)
+    return repo

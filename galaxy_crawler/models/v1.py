@@ -230,6 +230,8 @@ class Namespace(BaseModel, ModelInterfaceMixin):
 
     provider_namespace = relationship("ProviderNamespace",
                                       back_populates="namespace")
+    roles = relationship("Role",
+                         back_populates="namespace")
 
     _pk = 'namespace_id'
 
@@ -361,6 +363,7 @@ class Repository(BaseModel, ModelInterfaceMixin):
                                    ForeignKey('provider_namespaces.provider_namespace_id'))
     provider_namespace = relationship("ProviderNamespace",
                                       back_populates="repositories")  # type: ProviderNamespace
+    roles = relationship("Role", back_populates="repository")
 
     _pk = 'repository_id'
 
@@ -414,6 +417,7 @@ class RoleType(BaseModel):
     role_type_id = Column(Integer, primary_key=True)
     name = Column(String(8), unique=True)
     description = Column(String(MAX_INDEXED_STR))
+    roles = relationship('Role', back_populates='role_type')
 
     @classmethod
     def get_by_name(cls, name: str, session: 'Session') -> 'RoleType':
@@ -436,7 +440,8 @@ class RoleVersion(BaseModel):
     name = Column(String(MAX_INDEXED_STR))
 
     repository = Column(Integer, ForeignKey('repositories.repository_id'))
-    role = Column(Integer, ForeignKey('roles.role_id'))
+    role_id = Column(Integer, ForeignKey('roles.role_id'))
+    role = relationship("Role", back_populates="versions")
 
     release_date = Column(DateTime)
 
@@ -449,14 +454,17 @@ class RoleDependency(BaseModel):
 
 class Role(BaseModel, ModelInterfaceMixin):
     __tablename__ = "roles"
-    __table_args__ = (UniqueConstraint('name', 'namespace'),)
+    __table_args__ = (UniqueConstraint('name', 'namespace_id'),)
     role_id = Column(Integer, primary_key=True)
     name = Column(String(MAX_INDEXED_STR))
     description = Column(Text)
 
-    role_type = Column(Integer, ForeignKey('role_types.role_type_id'))
-    namespace = Column(Integer, ForeignKey('namespaces.namespace_id'))
-    repository = Column(Integer, ForeignKey('repositories.repository_id'))
+    role_type_id = Column(Integer, ForeignKey('role_types.role_type_id'))
+    role_type = relationship("RoleType", back_populates="roles")
+    namespace_id = Column(Integer, ForeignKey('namespaces.namespace_id'))
+    namespace = relationship("Namespace", back_populates="roles")
+    repository_id = Column(Integer, ForeignKey('repositories.repository_id'))
+    repository = relationship("Repository", back_populates="roles")
 
     # Some metrics
     min_ansible_version = Column(String(10))
@@ -482,8 +490,10 @@ class Role(BaseModel, ModelInterfaceMixin):
                                 primaryjoin=(RoleDependency.from_id == role_id),
                                 secondaryjoin=(RoleDependency.to_id == role_id),
                                 back_populates='dependencies')
+    versions = relationship('RoleVersion',
+                            back_populates='role')
 
-    _pk = 'role_pk'
+    _pk = 'role_id'
 
     @classmethod
     def from_json(cls, json_obj: 'dict', session: 'Session') -> 'ModelInterfaceMixin':
@@ -495,8 +505,6 @@ class Role(BaseModel, ModelInterfaceMixin):
                 'role_type',
                 'min_ansible_version',
                 'download_count',
-                'download_url',
-                'import_branch',
                 'created',
                 'modified'
             ],
@@ -508,31 +516,30 @@ class Role(BaseModel, ModelInterfaceMixin):
         tags_str = summary['tags']
         versions_json = summary['versions']
         platforms_json = summary['platforms']
-        licenses = LicenseType.from_json(json_obj)
-
-        parsed['namespace'] = namespace_id
-        parsed['repository'] = repository_id
+        licenses = License.from_json(json_obj, session)
+        parsed['namespace_id'] = namespace_id
+        parsed['repository_id'] = repository_id
         parsed['role_type'] = RoleType.get_by_name(parsed['role_type'], session)
         tags = Tag.find_by_name(tags_str, session)
-        platforms = [
-            Platform.get_by_name(p['name'], p['release'], session)
-            for p in platforms_json
-        ]
         for v in versions_json:
             role_ver = RoleVersion(
-                v['id'],
-                v['name'],
-                repository_id,
+                version_id=v['id'],
+                name=v['name'],
+                role_id=parsed[cls._pk],
+                repository=repository_id,
                 release_date=to_datetime(v['release_date']))
             session.add(role_ver)
         for d in summary['dependencies']:
-            rd = RoleDependency(from_id=parsed['id'], to_id=d)
+            rd = RoleDependency(from_id=parsed[cls._pk], to_id=d)
             session.add(rd)
         for l in licenses:
-            ls = LicenseStatus(role_id=parsed['id'], license_id=l.license_id)
+            ls = LicenseStatus(role_id=parsed[cls._pk], license_id=l.license_id)
             session.add(ls)
-        role = Role(
-            **parsed, tags=tags, platforms=platforms
-        )
+        role = Role(**parsed)
+        for t in tags:
+            role.tags.append(t)
+        for p in platforms_json:
+            platform = Platform.get_by_name(p['name'], p['release'], session)
+            role.platforms.append(platform)
         session.add(role)
         return role
