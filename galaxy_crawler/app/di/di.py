@@ -1,15 +1,13 @@
-from logging import DEBUG, INFO
 from queue import Queue
 from typing import TYPE_CHECKING
 
 from galaxy_crawler.crawl import Crawler
 from galaxy_crawler.filters import DefaultFilter
 from galaxy_crawler.filters.v1 import V1FilterEnum
-from galaxy_crawler.logger import enable_file_logger, enable_stream_handler
 from galaxy_crawler.parser import ResponseParser
 from galaxy_crawler.queries.v1 import V1QueryBuilder, V1QueryOrder
 from galaxy_crawler.store import JsonDataStore, RDBStore
-from galaxy_crawler.utils import to_absolute, mkdir
+from galaxy_crawler.utils import mkdir
 from galaxy_crawler.models.engine import EngineType
 
 if TYPE_CHECKING:
@@ -77,15 +75,6 @@ class AppComponent(object):
 
     def get_targets(self) -> 'List[Target]':
         return self.config.targets
-
-    def configure_logger(self) -> None:
-        log_level = DEBUG if self.config.debug else INFO
-        enable_stream_handler(log_level)
-        log_dir = self.config.log_dir
-        if log_dir is not None:
-            log_file = to_absolute(log_dir)
-            mkdir(log_file.parent)
-            enable_file_logger(log_dir, log_level)
 
     def get_engine(self):
         url = self.config.storage

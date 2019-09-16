@@ -1,12 +1,9 @@
 import distutils
-import argparse
 import os
 import warnings
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from galaxy_crawler.queries.v1 import V1QueryOrder
-from galaxy_crawler.filters.v1 import V1FilterEnum
 from galaxy_crawler.constants import Target
 
 if TYPE_CHECKING:
@@ -44,16 +41,6 @@ def reject_none(dict_obj: 'dict') -> 'dict':
 
 class Config(object):
     ENV_VARS_PREFIX = "GALAXY_CRAWLER_"
-
-    # Default values
-    DEFAULT_VERSION = 'v1'
-    DEFAULT_INTERVAL = 10
-    DEFAULT_RETRY = 3
-    DEFAULT_DEBUG = False
-    DEFAULT_OUTPUT_FORMAT = ['json']
-    DEFAULT_ORDER_BY = "download"
-    DEFAULT_FILTERS = []
-    DEFAULT_BACKEND = 'postgres'
 
     def __init__(self,
                  output_dir: 'Path' = None,
@@ -149,46 +136,3 @@ class Config(object):
             config_key = "DEFAULT_" + key.upper()
             config_dict[key] = getattr(cls, config_key, None)
         return config_dict
-
-    @classmethod
-    def get_parser(cls) -> 'argparse.ArgumentParser':
-        parser = argparse.ArgumentParser(description="Ansible Galaxy crawler")
-        parser.add_argument('--version', action='store_true', default=False, help="Show version")
-
-        log_parser = argparse.ArgumentParser(add_help=False)
-        log_group = log_parser.add_argument_group("LOGGING")
-        log_group.add_argument("--debug", action="store_true", default=False, help="Enable debug logging")
-        log_group.add_argument("--log-dir", type=Path, help="Log output directory")
-
-        cmd_parser = parser.add_subparsers(dest="func")
-        start_cmd = cmd_parser.add_parser("start", help="Start crawling", parents=[log_parser])
-        start_cmd.add_argument("output_dir", type=Path, help="Path to output")
-        start_cmd.add_argument("--version", choices=["v1"], help="The API version of galaxy.ansible.com")
-        start_cmd.add_argument("--interval", type=int,
-                               help=f"Fetch interval (default={cls.DEFAULT_INTERVAL})")
-        start_cmd.add_argument("--retry", type=int,
-                               help=f"Number of retrying (default={cls.DEFAULT_RETRY})")
-        start_cmd.add_argument("--format", choices=["json"], nargs="+", dest='output_format',
-                               help=f"Output format (default={cls.DEFAULT_OUTPUT_FORMAT})")
-        start_cmd.add_argument("--order-by", choices=V1QueryOrder.choices(),
-                               help=f"Query order (default={cls.DEFAULT_ORDER_BY}). It is a descending order by default.")
-        start_cmd.add_argument("--inverse", action="store_true",
-                               help="If this specified, make the order of query inverse")
-        start_cmd.add_argument("--filters", type=str, nargs='*',
-                               help=f"Filter expression (e.g. download>500). "
-                               f"Available filter types are {V1FilterEnum.choices()}")
-
-        # RDB operations
-
-        storage_parser = argparse.ArgumentParser(add_help=False)
-        storage_parser.add_argument("--storage", type=str, help="Storage path")
-
-        # Migration
-        migrate_cmd = cmd_parser.add_parser("migrate",
-                                            help="Update schemas",
-                                            parents=[log_parser, storage_parser])
-        makemigrate_cmd = cmd_parser.add_parser("makemigrations",
-                                                help="Generate migration script",
-                                                parents=[log_parser, storage_parser])
-        makemigrate_cmd.add_argument('-m', '--message', type=str, help="Revision message")
-        return parser

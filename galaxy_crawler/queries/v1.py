@@ -2,8 +2,8 @@ import copy
 from typing import TYPE_CHECKING
 from urllib import parse
 
-from .base import QueryBuilder, QueryOrder
 from galaxy_crawler.constants import Target
+from .base import QueryBuilder, QueryOrder
 
 if TYPE_CHECKING:
     from typing import Dict, Any
@@ -15,6 +15,7 @@ class V1QueryOrder(QueryOrder):
     DOWNLOAD = "download_count"
     STAR = "stargazers_count"
     NAME = "name"
+    ID = "id"
     CONTRIBUTOR_NAME = "namespace__name"
     FORK = "forks_count"
     WATCHER = "watchers_count"
@@ -45,7 +46,6 @@ class V1TargetPath(QueryOrder):
 
 
 class V1QueryBuilder(QueryBuilder):
-
     default_queries = {
         "page_size": 100
     }

@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy.engine import create_engine
 
 if TYPE_CHECKING:
+    from typing import Optional
     from sqlalchemy.engine import Engine
 
 
@@ -26,6 +27,14 @@ class EngineType(Enum):
     IN_MEMORY = r'^sqlite://$'
     POSTGRES = r'^postgresql\:\/\/([^\/]+(\:[^\/]+)?@)?[^\/]+\:[0-9]+\/.+$'
     SQLITE = r'^sqlite\:\/\/\/\/?.+$'
+
+    @classmethod
+    def validate(cls, url: str) -> 'Optional[Exception]':
+        for c in cls:
+            reg = re.compile(c.value)
+            if reg.match(url):
+                return None
+        return InvalidUrlError(url, "not specified")
 
     @classmethod
     def from_url(cls, url: str):

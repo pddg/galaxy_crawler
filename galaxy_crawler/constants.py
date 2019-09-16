@@ -5,6 +5,16 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import List
 
+# Default values
+DEFAULT_VERSION = 'v1'
+DEFAULT_INTERVAL = 10
+DEFAULT_RETRY = 3
+DEFAULT_DEBUG = False
+DEFAULT_OUTPUT_FORMAT = ['json']
+DEFAULT_ORDER_BY = "id"
+DEFAULT_FILTERS = []
+DEFAULT_BACKEND = 'postgres'
+
 
 class Target(Enum):
     ROLES = 'roles'
