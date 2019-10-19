@@ -66,18 +66,15 @@ class ResponseParser(Thread):
         finally:
             self.save()
             logger.info("Parser finished")
+        return
 
     def make_request(self, target: 'Target', url: str) -> Request:
         return Request(target, url)
 
     def get_url_from(self, target: 'Target'):
-        if target in [Target.REPOSITORIES, Target.ROLES]:
-            url = self.query_builder \
-                .order_by(self.order) \
-                .build(target)
-        else:
-            url = self.query_builder \
-                .build(target)
+        url = self.query_builder \
+            .order_by(self.order) \
+            .build(target)
         return url
 
     def add_items(self, target: 'Target', items: 'dict'):

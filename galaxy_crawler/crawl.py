@@ -93,7 +93,7 @@ class Crawler(Thread):
         failed_count = 0
         while failed_count < self._retry and not done:
             try:
-                resp = requests.get(url, headers=self.get_headers())
+                resp = requests.get(url, headers=self.get_headers(), timeout=(30, 60))
                 if resp.status_code != 200:
                     self.failed(f"{resp.status_code} '{url}' '{resp.json()}'")
                 else:
@@ -124,6 +124,9 @@ class Crawler(Thread):
                     break
                 logger.info(f"No URL pushed to queue in 3 seconds. "
                             f"Retrying...{retry_count}/{self._retry}")
+            except Exception as e:
+                self.failed(str(e))
+                break
         if url is None:
             raise NoURLExists()
         return url

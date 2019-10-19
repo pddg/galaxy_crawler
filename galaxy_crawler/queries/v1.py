@@ -75,11 +75,12 @@ class V1QueryBuilder(QueryBuilder):
 
     def build(self, target: 'Target') -> str:
         order = self._queries.get('order_by')
-        if order is not None:
-            order_str = order.by_target(target)
-            if not self.ascending_order:
-                order_str = order.inverse(order_str)
-            self._queries['order_by'] = order_str
+        # if order is not None:
+        #     order_str = order.by_target(target)
+        #     if not self.ascending_order:
+        #         order_str = order.inverse(order_str)
+        #     self._queries['order_by'] = order_str
+        self._queries['order_by'] = self._queries['order_by'].by_target(target)
         query_str = parse.urlencode(self._queries)
         parsed = parse.urlparse(API_BASE_URL)
         path = parsed.path + V1TargetPath.from_target(target).value

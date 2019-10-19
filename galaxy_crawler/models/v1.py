@@ -42,8 +42,10 @@ class Tag(BaseModel, ModelInterfaceMixin):
     name = Column(String(MAX_INDEXED_STR), unique=True)
 
     roles = relationship('Role',
+                         uselist=True,
                          secondary=TagAssociation.__tablename__,
-                         back_populates='tags')
+                         back_populates='tags',
+                         cascade="all")
     active = Column(Boolean)
     created = Column(DateTime)  # type: datetime
     modified = Column(DateTime)  # type: datetime
@@ -61,6 +63,9 @@ class Tag(BaseModel, ModelInterfaceMixin):
                 'modified'
             ],
             json_obj, 'Tag')
+        exist_tag = session.query(Tag).filter_by(tag_id=parsed['tag_id']).one_or_none()
+        if exist_tag is not None:
+            return exist_tag
         tag = Tag(**parsed)
         session.add(tag)
         return tag
@@ -92,6 +97,7 @@ class License(BaseModel, ModelInterfaceMixin):
     description = Column(String(MAX_INDEXED_STR))
 
     roles = relationship("Role",
+                         uselist=True,
                          secondary=LicenseStatus.__tablename__,
                          back_populates='licenses')
 
@@ -133,7 +139,7 @@ class PlatformStatus(BaseModel):
 
 class Platform(BaseModel, ModelInterfaceMixin):
     __tablename__ = "platforms"
-    __table_args__ = (UniqueConstraint('name', 'release'),)
+    # __table_args__ = (UniqueConstraint('name', 'release'),)
     platform_id = Column(Integer, primary_key=True, autoincrement=False)
     name = Column(String(MAX_INDEXED_STR))
     release = Column(String(MAX_INDEXED_STR))
@@ -174,7 +180,7 @@ class Platform(BaseModel, ModelInterfaceMixin):
         return session.query(cls) \
             .filter(cls.name == name) \
             .filter(cls.release == release) \
-            .one_or_none()
+            .first()
 
 
 class Provider(BaseModel, ModelInterfaceMixin):
@@ -187,7 +193,8 @@ class Provider(BaseModel, ModelInterfaceMixin):
     modified = Column(DateTime)  # type: datetime
 
     provider_namespaces = relationship("ProviderNamespace",
-                                       back_populates="provider")
+                                       back_populates="provider",
+                                       cascade="all, delete-orphan")
 
     _pk = 'provider_id'
 
@@ -229,9 +236,12 @@ class Namespace(BaseModel, ModelInterfaceMixin):
     modified = Column(DateTime)
 
     provider_namespace = relationship("ProviderNamespace",
-                                      back_populates="namespace")
+                                      back_populates="namespace",
+                                      single_parent=True,
+                                      cascade="all, delete-orphan")
     roles = relationship("Role",
-                         back_populates="namespace")
+                         back_populates="namespace",
+                         cascade="all, delete-orphan")
 
     _pk = 'namespace_id'
 
@@ -265,9 +275,8 @@ class Namespace(BaseModel, ModelInterfaceMixin):
 class ProviderNamespace(BaseModel, ModelInterfaceMixin):
     """Namespace on remote git repository"""
     __tablename__ = "provider_namespaces"
-    __table_args__ = (UniqueConstraint("provider_id", "namespace_id"),)
     provider_namespace_id = Column(Integer, primary_key=True, autoincrement=False)
-    name = Column(String(MAX_INDEXED_STR), index=True, unique=True)
+    name = Column(String(MAX_INDEXED_STR), index=True, nullable=False)
     display_name = Column(String(MAX_INDEXED_STR))
     company = Column(String(MAX_INDEXED_STR), nullable=True)
     email = Column(String(MAX_INDEXED_STR), nullable=True)
@@ -279,15 +288,20 @@ class ProviderNamespace(BaseModel, ModelInterfaceMixin):
     modified = Column(DateTime)
 
     provider_id = Column(Integer,
-                         ForeignKey('providers.provider_id'))
+                         ForeignKey('providers.provider_id'), nullable=True)
     provider = relationship("Provider",
-                            back_populates="provider_namespaces")  # type: Provider
+                            single_parent=True,
+                            back_populates="provider_namespaces",
+                            cascade="all, delete-orphan")  # type: Provider
     namespace_id = Column(Integer,
                           ForeignKey('namespaces.namespace_id'))
     namespace = relationship("Namespace",
-                             back_populates="provider_namespace")  # type: Namespace
+                             single_parent=True,
+                             back_populates="provider_namespace",
+                             cascade="all, delete-orphan")  # type: Namespace
     repositories = relationship("Repository",
-                                back_populates="provider_namespace")
+                                back_populates="provider_namespace",
+                                cascade="all, delete-orphan")
 
     is_active = Column(Boolean, nullable=True)
     _pk = 'provider_namespace_id'
@@ -316,8 +330,14 @@ class ProviderNamespace(BaseModel, ModelInterfaceMixin):
             ],
             json_obj, 'ProviderNamespace'
         )
-        provider_id = json_obj['summary_fields']['provider']['id']
-        namespace_id = json_obj['summary_fields']['namespace']['id']
+        try:
+            provider_id = json_obj['summary_fields']['provider']['id']
+        except KeyError:
+            provider_id = None
+        try:
+            namespace_id = json_obj['summary_fields']['namespace']['id']
+        except KeyError:
+            namespace_id = None
         provider_ns = ProviderNamespace(**parsed, provider_id=provider_id, namespace_id=namespace_id)
         session.add(provider_ns)
         return provider_ns
@@ -421,7 +441,10 @@ class RoleType(BaseModel):
 
     @classmethod
     def get_by_name(cls, name: str, session: 'Session') -> 'RoleType':
-        role_type_enum = RoleTypeEnum[name.upper()]
+        if name is None:
+            role_type_enum = RoleTypeEnum.ANS
+        else:
+            role_type_enum = RoleTypeEnum[name.upper()]
         exists = session.query(cls) \
             .filter(cls.name == role_type_enum.name) \
             .one_or_none()
@@ -460,38 +483,49 @@ class Role(BaseModel, ModelInterfaceMixin):
     description = Column(Text)
 
     role_type_id = Column(Integer, ForeignKey('role_types.role_type_id'))
-    role_type = relationship("RoleType", back_populates="roles")
+    role_type = relationship("RoleType",
+                             back_populates="roles")
     namespace_id = Column(Integer, ForeignKey('namespaces.namespace_id'))
-    namespace = relationship("Namespace", back_populates="roles")
+    namespace = relationship("Namespace",
+                             back_populates="roles")
     repository_id = Column(Integer, ForeignKey('repositories.repository_id'))
-    repository = relationship("Repository", back_populates="roles")
+    repository = relationship("Repository",
+                              back_populates="roles",
+                              cascade='all')
 
     # Some metrics
     min_ansible_version = Column(String(10))
     download_count = Column(Integer)
-    download_url = Column(String(MAX_INDEXED_STR))
-    import_branch = Column(String(MAX_INDEXED_STR))
     created = Column(DateTime)
     modified = Column(DateTime)
 
     deprecated = Column(Boolean)
 
     tags = relationship('Tag',
+                        uselist=True,
                         secondary=TagAssociation.__tablename__,
-                        back_populates='roles')
+                        back_populates='roles',
+                        cascade='all')
     licenses = relationship('License',
+                            uselist=True,
                             secondary=LicenseStatus.__tablename__,
-                            back_populates='roles')
+                            back_populates='roles',
+                            cascade='all')
     platforms = relationship('Platform',
+                             uselist=True,
                              secondary=PlatformStatus.__tablename__,
-                             back_populates='roles')
+                             back_populates='roles',
+                             cascade='all')
     dependencies = relationship('Role',
+                                uselist=True,
                                 secondary=RoleDependency.__tablename__,
                                 primaryjoin=(RoleDependency.from_id == role_id),
                                 secondaryjoin=(RoleDependency.to_id == role_id),
                                 back_populates='dependencies')
     versions = relationship('RoleVersion',
-                            back_populates='role')
+                            uselist=True,
+                            back_populates='role',
+                            cascade='all')
 
     _pk = 'role_id'
 
@@ -521,6 +555,15 @@ class Role(BaseModel, ModelInterfaceMixin):
         parsed['repository_id'] = repository_id
         parsed['role_type'] = RoleType.get_by_name(parsed['role_type'], session)
         tags = Tag.find_by_name(tags_str, session)
+        role = Role(**parsed)
+        for t in tags:
+            role.tags.append(t)
+        for p in platforms_json:
+            platform = Platform.get_by_name(p['name'], p['release'], session)
+            role.platforms.append(platform)
+        for l in licenses:
+            role.licenses.append(l)
+        session.add(role)
         for v in versions_json:
             role_ver = RoleVersion(
                 version_id=v['id'],
@@ -529,17 +572,15 @@ class Role(BaseModel, ModelInterfaceMixin):
                 repository=repository_id,
                 release_date=to_datetime(v['release_date']))
             session.add(role_ver)
-        for d in summary['dependencies']:
-            rd = RoleDependency(from_id=parsed[cls._pk], to_id=d)
-            session.add(rd)
-        for l in licenses:
-            ls = LicenseStatus(role_id=parsed[cls._pk], license_id=l.license_id)
-            session.add(ls)
-        role = Role(**parsed)
-        for t in tags:
-            role.tags.append(t)
-        for p in platforms_json:
-            platform = Platform.get_by_name(p['name'], p['release'], session)
-            role.platforms.append(platform)
-        session.add(role)
         return role
+
+    @classmethod
+    def resolve_dependencies(cls, json_obj: 'dict', session: 'Session') -> 'bool':
+        from_id = json_obj['id']
+        for d in json_obj['summary_fields']['dependencies']:
+            try:
+                session.add(RoleDependency(from_id=from_id, to_id=d))
+            except Exception:
+                logger.warning(f"Failed to resolve dependency from {from_id} to {d}")
+                return False
+        return True

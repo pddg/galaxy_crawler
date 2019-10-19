@@ -1,5 +1,7 @@
 import functools
 import json
+from itertools import chain
+
 from .errors import JSONParseFailed, DateParseFailed
 
 from typing import TYPE_CHECKING
@@ -60,6 +62,8 @@ def to_datetime(d_str: 'str') -> 'datetime':
             dt_obj = datetime.strptime(d_str, SECONDARY_DATETIME_FORMAT)
         except ValueError as e:
             raise DateParseFailed(str(e))
+    except TypeError:
+        return None
     return as_utc(dt_obj)
 
 
@@ -83,20 +87,27 @@ def parse_json(keys: 'List[str]', json_obj: 'dict', model_name: 'str') -> 'dict'
     return parsed
 
 
-def concat_json(json_dir: 'Path') -> 'dict':
+def concat_json(json_dir: 'Path') -> 'List[dict]':
     if not json_dir.exists():
         raise FileNotFoundError(f"{json_dir}: No such directory.")
     json_set = []
     for j in json_dir.glob('*.json'):
         with j.open('r') as fp:
             body = json.load(fp)['json']
-        idx = int(j.name.split('_')[-1])
-        json_set.append((idx, body))
+        idx = int(j.stem.split('_')[-1])
+        tmp = []
+        for j in body:
+            if isinstance(j, list):
+                for _j in j:
+                    tmp.append(_j)
+            else:
+                tmp.append(j)
+        json_set.append((idx, tmp))
     # Sort json by its file name
     json_set.sort(key=lambda x: x[0])
     json_set = [j[1] for j in json_set]
     # Flatten nested lists
-    return sum(json_set)
+    return sum(json_set, [])
 
 
 def get_role_name_from_json(j: 'dict') -> str:

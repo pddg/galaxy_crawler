@@ -4,6 +4,7 @@ import warnings
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from galaxy_crawler import constants
 from galaxy_crawler.constants import Target
 
 if TYPE_CHECKING:
@@ -134,5 +135,5 @@ class Config(object):
         config_dict = dict()
         for key in keys:
             config_key = "DEFAULT_" + key.upper()
-            config_dict[key] = getattr(cls, config_key, None)
+            config_dict[key] = getattr(constants, config_key, None)
         return config_dict

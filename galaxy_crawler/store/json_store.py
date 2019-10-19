@@ -61,7 +61,7 @@ class JsonDataStore(ResponseDataStore):
 
     def save(self, target: 'Target', obj: 'List[dict]', commit: bool = False) -> 'Any':
         if target.value in self.responses:
-            self.responses[target.value]['json'].append(obj)
+            self.responses[target.value]['json'].extend(obj)
             self.responses[target.value]['finished_at'] = self._get_current_time()
         else:
             tmpl = copy.deepcopy(self.template)
