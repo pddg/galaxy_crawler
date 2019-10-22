@@ -116,20 +116,17 @@ class Crawler(Thread):
         while True:
             try:
                 url = self._url_queue.get(timeout=3)
-                break
+                if url is None:
+                    raise NoURLExists()
+                return url
             except Empty:
                 retry_count += 1
                 if retry_count > self._retry:
-                    url = None
-                    break
+                    raise NoURLExists()
                 logger.info(f"No URL pushed to queue in 3 seconds. "
                             f"Retrying...{retry_count}/{self._retry}")
             except Exception as e:
                 self.failed(str(e))
-                break
-        if url is None:
-            raise NoURLExists()
-        return url
 
     def get_headers(self):
         return self.base_headers.update(self._custom_headers)

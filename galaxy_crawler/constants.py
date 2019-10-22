@@ -6,7 +6,6 @@ if TYPE_CHECKING:
     from typing import List
 
 # Default values
-DEFAULT_VERSION = 'v1'
 DEFAULT_INTERVAL = 10
 DEFAULT_RETRY = 3
 DEFAULT_DEBUG = False

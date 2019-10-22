@@ -45,7 +45,6 @@ class Config(object):
 
     def __init__(self,
                  output_dir: 'Path' = None,
-                 version: str = None,
                  interval: int = None,
                  retry: int = None,
                  output_format: 'List[str]' = None,
@@ -61,7 +60,6 @@ class Config(object):
         if retry is not None:
             assert retry >= 0, "Retry must be a positive value."
         self.output_dir = output_dir
-        self.version = version
         self.interval = interval
         self.output_format = output_format
         self.retry = retry

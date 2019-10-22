@@ -30,6 +30,22 @@ def insert(json_obj: dict, model: 'models.BaseModel', session) -> 'bool':
     return True
 
 
+def insert_dependencies(json_objs, session: 'models.Session'):
+    logger.info("Try to resolve role dependencies.")
+    resolve_fails = []
+    objs = json_objs
+    while len(objs) > 0:
+        for j in objs:
+            ok = models.Role.resolve_dependencies(j, session)
+            if not ok:
+                resolve_fails.append(j)
+            else:
+                if j in resolve_fails:
+                    resolve_fails.remove(j)
+        session.commit()
+        objs = resolve_fails
+
+
 class LoadCommand(uroboros.Command):
 
     name = 'load'
@@ -75,19 +91,7 @@ class LoadCommand(uroboros.Command):
                 for j in json_objs:
                     insert(j, model, session)
                 if name == 'roles':
-                    logger.info("Try to resolve role dependencies.")
-                    resolve_fails = []
-                    objs = json_objs
-                    while len(objs) > 0:
-                        for j in objs:
-                            ok = models.Role.resolve_dependencies(j, session)
-                            if not ok:
-                                resolve_fails.append(j)
-                            else:
-                                if j in resolve_fails:
-                                    resolve_fails.remove(j)
-                            session.commit()
-                        objs = resolve_fails
+                    insert_dependencies(json_objs, session)
             except Exception as e:
                 logger.exception(str(e))
                 session.rollback()

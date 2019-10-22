@@ -26,7 +26,6 @@ class CrawlCommand(uroboros.Command):
 
     def build_option(self, parser: 'argparse.ArgumentParser') -> 'argparse.ArgumentParser':
         parser.add_argument("output_dir", type=Path, help="Path to output")
-        parser.add_argument("--version", choices=["v1"], help="The API version of galaxy.ansible.com")
         parser.add_argument("--interval", type=int,
                             help=f"Fetch interval (default={constants.DEFAULT_INTERVAL})")
         parser.add_argument("--retry", type=int,

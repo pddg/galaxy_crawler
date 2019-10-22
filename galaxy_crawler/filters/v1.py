@@ -71,5 +71,9 @@ class AnsibleVersionFilter(Filter):
             # When failed to parse value as float
             logger.warning(f"Cannot parse min_ansible_version ('{min_version_str}'). Use 0.0 instead.")
             min_version = 0.0
+        except TypeError:
+            # The value is None
+            logger.warning(f"Cannot parse min_ansible_version ('{min_version_str}'). Use 0.0 instead.")
+            min_version = 0.0
         return min_version >= self.min_version
 

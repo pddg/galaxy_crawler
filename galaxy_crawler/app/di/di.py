@@ -37,7 +37,6 @@ class AppComponent(object):
         return stores
 
     def get_query_builder(self) -> 'QueryBuilder':
-        assert self.config.version == "v1", f"Specified version '{self.config.version}' is not supported."
         return V1QueryBuilder()
 
     def get_crawler(self) -> 'Crawler':
@@ -60,7 +59,6 @@ class AppComponent(object):
         )
 
     def get_query_order(self) -> 'QueryOrder':
-        assert self.config.version == "v1", f"Specified version '{self.config.version}' is not supported."
         order_by = self.config.order_by
         if order_by not in V1QueryOrder.choices():
             raise ValueError(f"Order type '{order_by}' is not supported.")
