@@ -116,12 +116,14 @@ def _gen_depends(from_id: int, depends: 'List[int]') -> 'List[BaseModel]':
 class DependencyResolver(object):
     """Resolve dependencies among role"""
     base_headers = {"content-type": "application/json"}
+    map_file_name = 'role_id_mapping.json'
 
     def __init__(self, query_builder: 'QueryBuilder', interval: int = 5):
         self.query_builder = query_builder
         self.query_builder.clear_query()
         self.base_url = self.query_builder.build(Target.ROLES)
         self.interval = interval
+        self.mapped_file = None  # type: Optional[Path]
         self.id_mappings = dict()  # type: Dict[str, int]
         self.dependency_mappings = dict()  # type: Dict[int, List[int]]
 
@@ -137,6 +139,8 @@ class DependencyResolver(object):
         # Retry to resolve
         for r in to_resolve:
             self._resolve_each(r, get_depends_if_fail=False)
+        # Save obtained mapping
+        self._save_mapping()
         nested_depends = [
             _gen_depends(from_id, depends)
             for from_id, depends in self.dependency_mappings.items()
@@ -144,11 +148,26 @@ class DependencyResolver(object):
         # Flatten nested list
         return sum(nested_depends, [])
 
+    def load_mapping(self, dir_path: 'Path'):
+        self.mapped_file = dir_path / self.map_file_name
+        if not self.mapped_file.exists():
+            return
+        logger.debug(f"Load role mappings from {self.mapped_file}")
+        with self.mapped_file.open() as f:
+            self.id_mappings = json.load(f)
+
     def _get_role_id_by_name(self, name: str) -> int:
         id_ = self.id_mappings.get(name)
         if id_ is None:
             raise RoleNotFound(name, None)
         return id_
+
+    def _save_mapping(self):
+        if self.mapped_file is None:
+            return
+        logger.debug(f"Save role mappings as {self.mapped_file}")
+        with self.mapped_file.open() as f:
+            json.dump(self.id_mappings, f)
 
     def _gen_initial_mappings(self, roles: 'List[Dict[str, Any]]'):
         for r in roles:

@@ -569,9 +569,10 @@ class Role(BaseModel, ModelInterfaceMixin):
             role.licenses.append(l)
         for v in versions_json:
             version = RepositoryVersion(
+                version_id=v['id'],
                 name=v['name'],
-                repository=repository_id,
-                release_date=to_datetime(v['release_date'])).update_or_create(session)
+                repository_id=repository_id,
+                release_date=to_datetime(v['release_date']))
             role.versions.append(version)
         return role
 

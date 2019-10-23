@@ -1,9 +1,17 @@
 import logging
+from typing import TYPE_CHECKING
 
 from sqlalchemy.orm import sessionmaker
 
 from galaxy_crawler.models.utils import concat_json
 from galaxy_crawler.models import v1 as models
+
+
+if TYPE_CHECKING:
+    from pathlib import Path
+    from sqlalchemy.engine import Engine
+    from galaxy_crawler.models.utils import DependencyResolver
+    from galaxy_crawler.repositories.base import RDBStorage
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +28,7 @@ def insert(json_obj: dict, model: 'models.BaseModel', session: 'models.Session')
 class JsonLoader(object):
     """Load JSON and insert them to RDB"""
 
-    def __init__(self, json_dir, engine, rdb_store, resolver):
+    def __init__(self, json_dir: 'Path', engine: 'Engine', rdb_store: 'RDBStorage', resolver: 'DependencyResolver'):
         self.json_dir = json_dir
         self.engine = engine
         self.rdb_store = rdb_store
@@ -66,6 +74,7 @@ class JsonLoader(object):
                 session.add_all(objs)
                 if name == 'roles':
                     logger.info("Try to resolve role dependencies.")
+                    self.resolver.load_mapping(self.json_dir)
                     depends = self.resolver.resolve(json_objs)
                     session.add_all(depends)
                 session.commit()
