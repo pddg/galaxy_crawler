@@ -51,10 +51,10 @@ class LoadCommand(uroboros.Command):
             engine = c.get_engine()
             rdb_store = c.get_rdb_store()
             resolver = c.get_dependency_resolver()
-            # logger.debug("Drop existing tables")
-            # rdb_store.drop_tables()
-            # logger.debug("Create tables")
-            # rdb_store.create_tables()
+            logger.debug("Drop existing tables")
+            rdb_store.drop_tables()
+            logger.debug("Create tables")
+            rdb_store.create_tables()
         except Exception as e:
             logger.error(e)
             return ExitStatus.FAILURE
