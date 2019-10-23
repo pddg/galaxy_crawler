@@ -221,7 +221,8 @@ class DependencyResolver(object):
                 if from_id not in self.dependency_mappings:
                     self.dependency_mappings[from_id] = [d_id]
                 else:
-                    self.dependency_mappings[from_id].append(d_id)
+                    if d_id not in self.dependency_mappings[from_id]:
+                        self.dependency_mappings[from_id].append(d_id)
             return True
         except RoleNotFound as e:
             if get_depends_if_fail:
