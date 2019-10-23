@@ -73,9 +73,9 @@ class Config(object):
 
         # TODO: To support to select targets by option
         self.targets = [
+            Target.PROVIDERS,
             Target.TAGS,
             Target.PLATFORMS,
-            Target.PROVIDERS,
             Target.NAMESPACES,
             Target.PROVIDER_NAMESPACES,
             Target.REPOSITORIES,

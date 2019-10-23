@@ -1,16 +1,17 @@
 from logging import getLogger
-from queue import Queue, Empty
+from queue import Queue
 from threading import Thread
-from typing import TYPE_CHECKING
 from time import sleep
+from typing import TYPE_CHECKING
 
 import requests
 
-from galaxy_crawler.queries.v1 import V1TargetPath
+from galaxy_crawler.queries import QueryOrder, QueryBuilder
+from galaxy_crawler.queries.v1 import Paginator
 
 if TYPE_CHECKING:
     from galaxy_crawler.constants import Target
-    from typing import Dict, Optional, Any
+    from typing import Dict, Any, List
 
 logger = getLogger(__name__)
 
@@ -21,19 +22,6 @@ class NoURLExists(Exception):
 
 class RequestFailed(Exception):
     pass
-
-
-class Request(object):
-
-    def __init__(self, target: 'Target', url: str = None):
-        self.target = target
-        self._url = url
-
-    @property
-    def url(self) -> str:
-        if self._url is None:
-            return V1TargetPath.from_target(self.target)
-        return self._url
 
 
 class Response(object):
@@ -49,16 +37,24 @@ class Crawler(Thread):
     cache_key = 'crawler'
     base_headers = {"content-type": "application/json"}
 
-    def __init__(self, url_queue: 'Queue', json_queue: 'Queue', wait_interval: int = 10, retry: int = 3,
-                 continue_if_fail: bool = False):
+    def __init__(self,
+                 targets: 'List[Target]',
+                 query_builder: 'QueryBuilder',
+                 order: 'QueryOrder',
+                 json_queue: 'Queue',
+                 wait_interval: int = 10,
+                 retry: int = 3):
         super(Crawler, self).__init__()
-        self._url_queue = url_queue
+        self.targets = targets
+        self.current_target = targets[0]
+        self.query_builder = query_builder
+        self.order = order
         self._json_queue = json_queue
         self._stop_signal = False
         self._wait_interval = wait_interval
         self._retry = retry
-        self._continue_if_fail = continue_if_fail
         self._custom_headers = dict()
+        self._paginator = Paginator(100)
 
     def send_stop_signal(self):
         self._stop_signal = True
@@ -69,17 +65,18 @@ class Crawler(Thread):
             if self._stop_signal:
                 break
             try:
-                access_request = self.get_url()
+                url = self.get_url()
             except NoURLExists:
                 break
             try:
-                data = self.get_json(access_request.url)
+                data = self.get_json(url)
             except RequestFailed as e:
                 logger.error(e.args)
                 continue
-            res = Response(access_request.target, data)
+            if data is None:
+                continue
+            res = Response(self.current_target, data)
             self._json_queue.put(res)
-            self._url_queue.task_done()
             self.sleep()
         self.finish()
 
@@ -95,9 +92,23 @@ class Crawler(Thread):
             try:
                 resp = requests.get(url, headers=self.get_headers(), timeout=(30, 60))
                 if resp.status_code != 200:
-                    self.failed(f"{resp.status_code} '{url}' '{resp.json()}'")
+                    logger.warning(f"{resp.status_code}: '{url}'")
+                    if resp.status_code == 404:
+                        logger.info(f"Done: {self.current_target.name}")
+                        self.next_target()
+                        return data
+                    elif resp.status_code == 500:
+                        page_size = self._paginator.extract_page_size(url)
+                        if page_size == 1:
+                            logger.warning(f"Skip due to 500: {url}")
+                            return data
+                        else:
+                            self._paginator.enter_failed_state()
+                            return data
+                    else:
+                        resp.raise_for_status()
                 else:
-                    logger.info(f"{resp.status_code}: {url}")
+                    logger.info(f"{resp.status_code}: '{url}'")
                 done = True
             except Exception as e:
                 failed_count += 1
@@ -111,22 +122,14 @@ class Crawler(Thread):
             data = resp.json()
         return data
 
-    def get_url(self) -> 'Optional[Request]':
-        retry_count = 0
-        while True:
-            try:
-                url = self._url_queue.get(timeout=3)
-                if url is None:
-                    raise NoURLExists()
-                return url
-            except Empty:
-                retry_count += 1
-                if retry_count > self._retry:
-                    raise NoURLExists()
-                logger.info(f"No URL pushed to queue in 3 seconds. "
-                            f"Retrying...{retry_count}/{self._retry}")
-            except Exception as e:
-                self.failed(str(e))
+    def get_url(self) -> 'str':
+        if self.current_target is None:
+            raise NoURLExists()
+        url = self.query_builder \
+            .order_by(self.order) \
+            .set_page(self._paginator.next_page()) \
+            .build(self.current_target)
+        return url
 
     def get_headers(self):
         return self.base_headers.update(self._custom_headers)
@@ -138,6 +141,13 @@ class Crawler(Thread):
         logger.info("Crawler finished")
 
     def failed(self, msg: str):
-        if not self._continue_if_fail:
-            self.send_stop_signal()
+        self.send_stop_signal()
         raise RequestFailed(msg)
+
+    def next_target(self):
+        idx = self.targets.index(self.current_target)
+        try:
+            self.current_target = self.targets[idx + 1]
+        except IndexError:
+            self.current_target = None
+        self._paginator = Paginator(100)

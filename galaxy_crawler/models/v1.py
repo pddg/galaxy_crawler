@@ -63,11 +63,7 @@ class Tag(BaseModel, ModelInterfaceMixin):
                 'modified'
             ],
             json_obj, 'Tag')
-        exist_tag = session.query(Tag).filter_by(tag_id=parsed['tag_id']).one_or_none()
-        if exist_tag is not None:
-            return exist_tag
         tag = Tag(**parsed)
-        session.add(tag)
         return tag
 
     @classmethod
@@ -114,7 +110,6 @@ class License(BaseModel, ModelInterfaceMixin):
                     name=license_str,
                     description='Other type license (could not categorize)'
                 )
-                session.add(other_license)
                 records = [other_license]
             else:
                 records = [exists]
@@ -124,7 +119,6 @@ class License(BaseModel, ModelInterfaceMixin):
                 exists = session.query(cls).filter_by(name=l.name).one_or_none()
                 if exists is None:
                     new_license = License(name=l.name, description=l.description)
-                    session.add(new_license)
                     records.append(new_license)
                 else:
                     records.append(exists)
@@ -155,11 +149,6 @@ class Platform(BaseModel, ModelInterfaceMixin):
 
     @classmethod
     def from_json(cls, json_obj: 'dict', session: 'Session') -> 'Platform':
-        exists = session.query(cls) \
-            .filter_by(platform_id=json_obj['id']) \
-            .one_or_none()
-        if exists:
-            return exists
         parsed = parse_json(
             [
                 {'key': cls._pk, 'target': 'id'},
@@ -172,7 +161,6 @@ class Platform(BaseModel, ModelInterfaceMixin):
             json_obj, 'Platform'
         )
         platform = Platform(**parsed)
-        session.add(platform)
         return platform
 
     @classmethod
@@ -200,11 +188,6 @@ class Provider(BaseModel, ModelInterfaceMixin):
 
     @classmethod
     def from_json(cls, json_obj: 'dict', session: 'Session') -> 'Provider':
-        exists = session.query(cls) \
-            .filter_by(provider_id=json_obj['id']) \
-            .one_or_none()
-        if exists:
-            return exists
         parsed = parse_json(
             [
                 {'key': cls._pk, 'target': 'id'},
@@ -217,7 +200,6 @@ class Provider(BaseModel, ModelInterfaceMixin):
             json_obj, 'Provider'
         )
         provider = Provider(**parsed)
-        session.add(provider)
         return provider
 
 
@@ -247,11 +229,6 @@ class Namespace(BaseModel, ModelInterfaceMixin):
 
     @classmethod
     def from_json(cls, json_obj: 'dict', session: 'Session') -> 'Namespace':
-        exists = session.query(cls) \
-            .filter_by(namespace_id=json_obj['id']) \
-            .one_or_none()
-        if exists:
-            return exists
         parsed = parse_json(
             [
                 {'key': cls._pk, 'target': 'id'},
@@ -268,7 +245,6 @@ class Namespace(BaseModel, ModelInterfaceMixin):
             json_obj, 'Namespace'
         )
         ns = Namespace(**parsed)
-        session.add(ns)
         return ns
 
 
@@ -308,11 +284,6 @@ class ProviderNamespace(BaseModel, ModelInterfaceMixin):
 
     @classmethod
     def from_json(cls, json_obj: 'dict', session: 'Session') -> 'ProviderNamespace':
-        exists = session.query(cls) \
-            .filter_by(provider_namespace_id=json_obj['id']) \
-            .one_or_none()
-        if exists:
-            return exists
         parsed = parse_json(
             [
                 {'key': cls._pk, 'target': 'id'},
@@ -339,7 +310,6 @@ class ProviderNamespace(BaseModel, ModelInterfaceMixin):
         except KeyError:
             namespace_id = None
         provider_ns = ProviderNamespace(**parsed, provider_id=provider_id, namespace_id=namespace_id)
-        session.add(provider_ns)
         return provider_ns
 
 
@@ -389,11 +359,6 @@ class Repository(BaseModel, ModelInterfaceMixin):
 
     @classmethod
     def from_json(cls, json_obj: 'dict', session: 'Session') -> 'Repository':
-        exists = session.query(cls) \
-            .filter_by(repository_id=json_obj['id']) \
-            .one_or_none()
-        if exists:
-            return exists
         parsed = parse_json(
             [
                 {'key': cls._pk, 'target': 'id'},
@@ -428,7 +393,6 @@ class Repository(BaseModel, ModelInterfaceMixin):
         provider_namespace_id = json_obj['summary_fields']['provider_namespace']['id']
         pn = ProviderNamespace.get_by_pk(provider_namespace_id, session)
         repo = Repository(**parsed, provider_namespace=pn)
-        session.add(repo)
         return repo
 
 
@@ -451,15 +415,13 @@ class RoleType(BaseModel):
         if exists is None:
             role_type = RoleType(name=role_type_enum.name,
                                  description=role_type_enum.description())
-            session.add(role_type)
             return role_type
         return exists
 
 
 class RoleVersion(BaseModel):
     __tablename__ = "role_versions"
-    __table_args__ = (UniqueConstraint("name", "repository"),)
-    version_id = Column(Integer, primary_key=True)
+    version_id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(MAX_INDEXED_STR))
 
     repository = Column(Integer, ForeignKey('repositories.repository_id'))
@@ -477,7 +439,7 @@ class RoleDependency(BaseModel):
 
 class Role(BaseModel, ModelInterfaceMixin):
     __tablename__ = "roles"
-    __table_args__ = (UniqueConstraint('name', 'namespace_id'),)
+    __table_args__ = (UniqueConstraint('name', 'namespace_id', 'repository_id', 'role_type_id'),)
     role_id = Column(Integer, primary_key=True)
     name = Column(String(MAX_INDEXED_STR))
     description = Column(Text)
@@ -563,24 +525,27 @@ class Role(BaseModel, ModelInterfaceMixin):
             role.platforms.append(platform)
         for l in licenses:
             role.licenses.append(l)
-        session.add(role)
         for v in versions_json:
-            role_ver = RoleVersion(
-                version_id=v['id'],
+            version = RoleVersion(
                 name=v['name'],
-                role_id=parsed[cls._pk],
                 repository=repository_id,
                 release_date=to_datetime(v['release_date']))
-            session.add(role_ver)
+            role.versions.append(version)
         return role
 
     @classmethod
     def resolve_dependencies(cls, json_obj: 'dict', session: 'Session') -> 'bool':
         from_id = json_obj['id']
+        depends = []
         for d in json_obj['summary_fields']['dependencies']:
             try:
-                session.add(RoleDependency(from_id=from_id, to_id=d))
-            except Exception:
+                if session.query(RoleDependency).filter_by(from_id=from_id, to_id=d).one_or_none():
+                    continue
+                depends.append(RoleDependency(from_id=from_id, to_id=d))
+            except Exception as e:
+                logger.debug(e)
+                
                 logger.warning(f"Failed to resolve dependency from {from_id} to {d}")
                 return False
+        session.add_all(depends)
         return True

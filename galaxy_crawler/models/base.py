@@ -20,21 +20,19 @@ class ModelInterfaceMixin(object):
         pk = getattr(self, self._pk, None)
         if pk is None:
             raise NotImplementedError('_pk is not imeplemented yet.')
-        return session.query(self).filter_by(**{self._pk: pk}).exists()
+        return session.query(self.__class__).get(pk)
 
     @classmethod
     def get_by_pk(cls, primary_key, session: 'Session') -> 'ModelInterfaceMixin':
         return session.query(cls).filter_by(**{cls._pk: primary_key}).one_or_none()
 
-    @utils.commit_if_true
-    def update_or_create(self, session: 'Session', commit: 'bool' = True) -> 'ModelInterfaceMixin':
+    def update_or_create(self, session: 'Session') -> 'ModelInterfaceMixin':
         if self.exists(session):
             pk = getattr(self, self._pk, None)
             if pk is None:
                 raise NotImplementedError('_pk is not imeplemented yet.')
-            exists_obj = self.get_by_pk(pk)
+            exists_obj = self.get_by_pk(pk, session)
             return utils.update_params(exists_obj, self)
-        session.add(self)
         return self
 
 

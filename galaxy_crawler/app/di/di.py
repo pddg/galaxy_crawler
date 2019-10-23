@@ -9,6 +9,7 @@ from galaxy_crawler.queries.v1 import V1QueryBuilder, V1QueryOrder
 from galaxy_crawler.store import JsonDataStore, RDBStore
 from galaxy_crawler.utils import mkdir
 from galaxy_crawler.models.engine import EngineType
+from galaxy_crawler.models.utils import DependencyResolver
 
 if TYPE_CHECKING:
     from typing import List, Type
@@ -23,7 +24,6 @@ class AppComponent(object):
 
     def __init__(self, config: 'Config'):
         self.config = config
-        self.url_queue = Queue()
         self.json_queue = Queue()
 
     def get_response_data_stores(self) -> 'List[ResponseDataStore]':
@@ -41,7 +41,9 @@ class AppComponent(object):
 
     def get_crawler(self) -> 'Crawler':
         return Crawler(
-            url_queue=self.url_queue,
+            targets=self.get_targets(),
+            query_builder=self.get_query_builder(),
+            order=self.get_query_order(),
             json_queue=self.json_queue,
             wait_interval=self.config.interval,
             retry=self.config.retry,
@@ -49,13 +51,9 @@ class AppComponent(object):
 
     def get_parser(self) -> 'ResponseParser':
         return ResponseParser(
-            url_queue=self.url_queue,
             json_queue=self.json_queue,
             data_stores=self.get_response_data_stores(),
-            query_builder=self.get_query_builder(),
             filters=self.get_filters(),
-            targets=self.get_targets(),
-            order=self.get_query_order()
         )
 
     def get_query_order(self) -> 'QueryOrder':
@@ -85,3 +83,6 @@ class AppComponent(object):
     def get_rdb_store(self) -> 'RDBStorage':
         storage_cls = self.get_rdb_store_class()
         return storage_cls(self.get_engine())
+
+    def get_dependency_resolver(self) -> 'DependencyResolver':
+        return DependencyResolver(self.get_query_builder(), int(self.config.interval))

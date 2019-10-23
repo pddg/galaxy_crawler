@@ -58,6 +58,10 @@ class CrawlCommand(uroboros.Command):
 
         try:
             while parser.is_alive():
+                if not crawler.is_alive():
+                    parser.send_stop_signal()
+                    parser.join()
+                    break
                 time.sleep(1)
             if crawler.is_alive():
                 crawler.send_stop_signal()
