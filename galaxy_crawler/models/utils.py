@@ -1,18 +1,15 @@
 import functools
 import json
 import time
-from datetime import datetime
 from logging import getLogger
 from pathlib import Path
 from typing import TYPE_CHECKING
 from urllib import parse
 
 import requests
-from pytz import timezone
 
-from galaxy_crawler.constants import Target
 from galaxy_crawler.models import v1 as models
-from .errors import JSONParseFailed, DateParseFailed
+from galaxy_crawler.constants import Target
 
 if TYPE_CHECKING:
     from typing import List, Dict, Any, Optional
@@ -22,10 +19,6 @@ if TYPE_CHECKING:
     from galaxy_crawler.queries import QueryBuilder
 
 logger = getLogger(__name__)
-
-DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%f%z"
-SECONDARY_DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S%z"
-UTC = timezone('UTC')
 
 
 def commit_if_true(func):
@@ -50,47 +43,6 @@ def update_params(old, new) -> 'ModelInterfaceMixin':
         if hasattr(old, key):
             setattr(old, key, val)
     return old
-
-
-def as_utc(d: 'datetime') -> 'datetime':
-    if d.tzinfo is not None:
-        return d.astimezone(UTC)
-    return UTC.localize(d)
-
-
-def to_datetime(d_str: 'str') -> 'datetime':
-    if isinstance(d_str, datetime):
-        return d_str
-    try:
-        dt_obj = datetime.strptime(d_str, DATETIME_FORMAT)
-    except ValueError:
-        try:
-            dt_obj = datetime.strptime(d_str, SECONDARY_DATETIME_FORMAT)
-        except ValueError as e:
-            raise DateParseFailed(str(e))
-    except TypeError:
-        return None
-    return as_utc(dt_obj)
-
-
-def parse_json(keys: 'List[str]', json_obj: 'dict', model_name: 'str') -> 'dict':
-    parsed = dict()
-    for key in keys:
-        if isinstance(key, dict):
-            json_key = key['target']
-            parsed_key = key['key']
-        else:
-            json_key = key
-            parsed_key = key
-        try:
-            value = json_obj[json_key]
-        except KeyError:
-            raise JSONParseFailed(model_name, json_obj)
-        if key in ['created', 'modified']:
-            parsed[parsed_key] = to_datetime(value)
-        else:
-            parsed[parsed_key] = value
-    return parsed
 
 
 def concat_json(json_dir: 'Path') -> 'List[dict]':
@@ -246,4 +198,3 @@ class DependencyResolver(object):
     def _sleep(self):
         logger.debug(f"Wait for {self.interval} sec...")
         time.sleep(self.interval)
-

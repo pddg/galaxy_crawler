@@ -14,7 +14,8 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
 from galaxy_crawler.models.base import LicenseType, ModelInterfaceMixin, RoleTypeEnum
-from galaxy_crawler.models.utils import parse_json, to_datetime
+from galaxy_crawler.models.errors import JSONParseFailed
+from galaxy_crawler.utils import to_datetime
 
 if TYPE_CHECKING:
     from typing import List, Dict, Any, Union
@@ -24,6 +25,26 @@ logger = getLogger(__name__)
 BaseModel = declarative_base()
 
 MAX_INDEXED_STR = 512
+
+
+def parse_json(keys: 'List[str]', json_obj: 'dict', model_name: 'str') -> 'dict':
+    parsed = dict()
+    for key in keys:
+        if isinstance(key, dict):
+            json_key = key['target']
+            parsed_key = key['key']
+        else:
+            json_key = key
+            parsed_key = key
+        try:
+            value = json_obj[json_key]
+        except KeyError:
+            raise JSONParseFailed(model_name, json_obj)
+        if key in ['created', 'modified']:
+            parsed[parsed_key] = to_datetime(value)
+        else:
+            parsed[parsed_key] = value
+    return parsed
 
 
 class TagAssociation(BaseModel):
@@ -354,6 +375,9 @@ class Repository(BaseModel, ModelInterfaceMixin):
     provider_namespace = relationship("ProviderNamespace",
                                       back_populates="repositories")  # type: ProviderNamespace
     roles = relationship("Role", back_populates="repository")
+    versions = relationship("RepositoryVersion",
+                            uselist=True,
+                            back_populates="repository")  # type: RepositoryVersion
 
     _pk = 'repository_id'
 
@@ -421,14 +445,31 @@ class RoleType(BaseModel):
 
 class RoleVersion(BaseModel):
     __tablename__ = "role_versions"
+    role_id = Column(Integer, ForeignKey('roles.role_id'), primary_key=True)
+    version_id = Column(Integer,
+                        ForeignKey('repository_versions.version_id'),
+                        primary_key=True)
+
+
+class RepositoryVersion(BaseModel, ModelInterfaceMixin):
+    __tablename__ = "repository_versions"
     version_id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(MAX_INDEXED_STR))
 
-    repository = Column(Integer, ForeignKey('repositories.repository_id'))
-    role_id = Column(Integer, ForeignKey('roles.role_id'))
-    role = relationship("Role", back_populates="versions")
+    repository_id = Column(Integer, ForeignKey('repositories.repository_id'))
+    repository = relationship("Repository", back_populates="versions")
 
+    roles = relationship("Role",
+                         secondary=RoleVersion.__tablename__,
+                         uselist=True,
+                         back_populates="versions")
     release_date = Column(DateTime)
+
+    _pk = 'version_id'
+
+    @classmethod
+    def from_json(cls, json_obj: 'dict', session: 'Session') -> 'ModelInterfaceMixin':
+        pass
 
 
 class RoleDependency(BaseModel):
@@ -484,9 +525,10 @@ class Role(BaseModel, ModelInterfaceMixin):
                                 primaryjoin=(RoleDependency.from_id == role_id),
                                 secondaryjoin=(RoleDependency.to_id == role_id),
                                 back_populates='dependencies')
-    versions = relationship('RoleVersion',
+    versions = relationship('RepositoryVersion',
                             uselist=True,
-                            back_populates='role',
+                            secondary=RoleVersion.__tablename__,
+                            back_populates='roles',
                             cascade='all')
 
     _pk = 'role_id'
@@ -526,10 +568,10 @@ class Role(BaseModel, ModelInterfaceMixin):
         for l in licenses:
             role.licenses.append(l)
         for v in versions_json:
-            version = RoleVersion(
+            version = RepositoryVersion(
                 name=v['name'],
                 repository=repository_id,
-                release_date=to_datetime(v['release_date']))
+                release_date=to_datetime(v['release_date'])).update_or_create(session)
             role.versions.append(version)
         return role
 
@@ -544,7 +586,7 @@ class Role(BaseModel, ModelInterfaceMixin):
                 depends.append(RoleDependency(from_id=from_id, to_id=d))
             except Exception as e:
                 logger.debug(e)
-                
+
                 logger.warning(f"Failed to resolve dependency from {from_id} to {d}")
                 return False
         session.add_all(depends)

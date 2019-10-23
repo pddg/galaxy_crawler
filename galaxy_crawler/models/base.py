@@ -1,5 +1,5 @@
-from enum import Enum
 from abc import abstractmethod
+from enum import Enum
 from typing import TYPE_CHECKING
 
 from galaxy_crawler.models import utils

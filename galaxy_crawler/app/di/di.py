@@ -4,12 +4,12 @@ from typing import TYPE_CHECKING
 from galaxy_crawler.crawl import Crawler
 from galaxy_crawler.filters import DefaultFilter
 from galaxy_crawler.filters.v1 import V1FilterEnum
+from galaxy_crawler.models.engine import EngineType
+from galaxy_crawler.models.utils import DependencyResolver
 from galaxy_crawler.parser import ResponseParser
 from galaxy_crawler.queries.v1 import V1QueryBuilder, V1QueryOrder
 from galaxy_crawler.store import JsonDataStore, RDBStore
 from galaxy_crawler.utils import mkdir
-from galaxy_crawler.models.engine import EngineType
-from galaxy_crawler.models.utils import DependencyResolver
 
 if TYPE_CHECKING:
     from typing import List, Type

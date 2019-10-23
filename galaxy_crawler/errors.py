@@ -6,6 +6,15 @@ class NoPrimaryKeyError(Exception):
     pass
 
 
+class DateParseFailed(Exception):
+
+    def __init__(self, msg):
+        self.msg = msg
+
+    def __str__(self):
+        return self.msg
+
+
 class InvalidExpressionError(Exception):
     def __init__(self, expression: str):
         self.expr = expression
