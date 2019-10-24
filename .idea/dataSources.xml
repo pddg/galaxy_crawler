@@ -10,5 +10,11 @@
         <property name="enable_load_extension" value="true" />
       </driver-properties>
     </data-source>
+    <data-source source="LOCAL" name="galaxy@localhost" uuid="688990e4-d625-4b41-9703-3eb6e1f88a5d">
+      <driver-ref>postgresql</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>org.postgresql.Driver</jdbc-driver>
+      <jdbc-url>jdbc:postgresql://localhost:5432/galaxy</jdbc-url>
+    </data-source>
   </component>
 </project>

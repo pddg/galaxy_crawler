@@ -39,7 +39,7 @@ class RDBStore(RDBStorage):
         self.engine = engine
         self.session = scoped_session(sessionmaker(bind=engine))
         self.retry_queue = {}  # type: Dict[Target, List[dict]]
-        model.BaseModel.metadata.create_all(self.engine)
+        self.create_tables()
 
     def _commit(self, target: 'Target', o: 'Any', session):
         try:
@@ -121,3 +121,8 @@ class RDBStore(RDBStorage):
         conf.set_main_option('script_location', str(model_dir / 'alembic'))
         return conf
 
+    def create_tables(self):
+        model.BaseModel.metadata.create_all(self.engine)
+
+    def drop_tables(self):
+        model.BaseModel.metadata.drop_all(self.engine)

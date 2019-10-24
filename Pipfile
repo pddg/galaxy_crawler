@@ -14,6 +14,7 @@ alembic = "*"
 pytest = "*"
 galaxy-crawler = {editable = true,path = "."}
 uroboros = ">=0.2.0"
+tqdm = "*"
 
 [requires]
 python_version = "3.7"

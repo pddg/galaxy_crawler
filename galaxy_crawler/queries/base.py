@@ -26,9 +26,17 @@ class QueryBuilder(metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
+    def set_page(self, page: 'Tuple[int, int]') -> 'QueryBuilder':
+        raise NotImplementedError
+
+    @abstractmethod
     def build(self, target: 'Target') -> str:
         raise NotImplementedError
 
     @abstractmethod
     def join(self, path: str):
+        raise NotImplementedError
+
+    @abstractmethod
+    def clear_query(self):
         raise NotImplementedError

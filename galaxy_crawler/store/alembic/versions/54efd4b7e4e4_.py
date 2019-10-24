@@ -1,8 +1,8 @@
-"""Init
+"""empty message
 
-Revision ID: 03f7a2e98c96
+Revision ID: 54efd4b7e4e4
 Revises: 
-Create Date: 2019-07-21 00:45:25.873091
+Create Date: 2019-10-23 22:22:26.714739
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '03f7a2e98c96'
+revision = '54efd4b7e4e4'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -46,8 +46,7 @@ def upgrade():
     sa.Column('active', sa.Boolean(), nullable=True),
     sa.Column('created', sa.DateTime(), nullable=True),
     sa.Column('modified', sa.DateTime(), nullable=True),
-    sa.PrimaryKeyConstraint('platform_id'),
-    sa.UniqueConstraint('name', 'release')
+    sa.PrimaryKeyConstraint('platform_id')
     )
     op.create_table('providers',
     sa.Column('provider_id', sa.Integer(), autoincrement=False, nullable=False),
@@ -72,11 +71,12 @@ def upgrade():
     sa.Column('active', sa.Boolean(), nullable=True),
     sa.Column('created', sa.DateTime(), nullable=True),
     sa.Column('modified', sa.DateTime(), nullable=True),
-    sa.PrimaryKeyConstraint('tag_id')
+    sa.PrimaryKeyConstraint('tag_id'),
+    sa.UniqueConstraint('name')
     )
     op.create_table('provider_namespaces',
     sa.Column('provider_namespace_id', sa.Integer(), autoincrement=False, nullable=False),
-    sa.Column('name', sa.String(length=512), nullable=True),
+    sa.Column('name', sa.String(length=512), nullable=False),
     sa.Column('display_name', sa.String(length=512), nullable=True),
     sa.Column('company', sa.String(length=512), nullable=True),
     sa.Column('email', sa.String(length=512), nullable=True),
@@ -88,12 +88,12 @@ def upgrade():
     sa.Column('modified', sa.DateTime(), nullable=True),
     sa.Column('provider_id', sa.Integer(), nullable=True),
     sa.Column('namespace_id', sa.Integer(), nullable=True),
+    sa.Column('is_active', sa.Boolean(), nullable=True),
     sa.ForeignKeyConstraint(['namespace_id'], ['namespaces.namespace_id'], ),
     sa.ForeignKeyConstraint(['provider_id'], ['providers.provider_id'], ),
-    sa.PrimaryKeyConstraint('provider_namespace_id'),
-    sa.UniqueConstraint('provider_id', 'namespace_id')
+    sa.PrimaryKeyConstraint('provider_namespace_id')
     )
-    op.create_index(op.f('ix_provider_namespaces_name'), 'provider_namespaces', ['name'], unique=True)
+    op.create_index(op.f('ix_provider_namespaces_name'), 'provider_namespaces', ['name'], unique=False)
     op.create_table('repositories',
     sa.Column('repository_id', sa.Integer(), autoincrement=False, nullable=False),
     sa.Column('name', sa.String(length=512), nullable=True),
@@ -124,25 +124,31 @@ def upgrade():
     sa.PrimaryKeyConstraint('repository_id'),
     sa.UniqueConstraint('name', 'provider_namespace_id')
     )
+    op.create_table('repository_versions',
+    sa.Column('version_id', sa.Integer(), autoincrement=True, nullable=False),
+    sa.Column('name', sa.String(length=512), nullable=True),
+    sa.Column('repository_id', sa.Integer(), nullable=True),
+    sa.Column('release_date', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['repository_id'], ['repositories.repository_id'], ),
+    sa.PrimaryKeyConstraint('version_id')
+    )
     op.create_table('roles',
     sa.Column('role_id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(length=512), nullable=True),
     sa.Column('description', sa.Text(), nullable=True),
-    sa.Column('role_type', sa.Integer(), nullable=True),
-    sa.Column('namespace', sa.Integer(), nullable=True),
-    sa.Column('repository', sa.Integer(), nullable=True),
+    sa.Column('role_type_id', sa.Integer(), nullable=True),
+    sa.Column('namespace_id', sa.Integer(), nullable=True),
+    sa.Column('repository_id', sa.Integer(), nullable=True),
     sa.Column('min_ansible_version', sa.String(length=10), nullable=True),
     sa.Column('download_count', sa.Integer(), nullable=True),
-    sa.Column('download_url', sa.String(length=512), nullable=True),
-    sa.Column('import_branch', sa.String(length=512), nullable=True),
     sa.Column('created', sa.DateTime(), nullable=True),
     sa.Column('modified', sa.DateTime(), nullable=True),
     sa.Column('deprecated', sa.Boolean(), nullable=True),
-    sa.ForeignKeyConstraint(['namespace'], ['namespaces.namespace_id'], ),
-    sa.ForeignKeyConstraint(['repository'], ['repositories.repository_id'], ),
-    sa.ForeignKeyConstraint(['role_type'], ['role_types.role_type_id'], ),
+    sa.ForeignKeyConstraint(['namespace_id'], ['namespaces.namespace_id'], ),
+    sa.ForeignKeyConstraint(['repository_id'], ['repositories.repository_id'], ),
+    sa.ForeignKeyConstraint(['role_type_id'], ['role_types.role_type_id'], ),
     sa.PrimaryKeyConstraint('role_id'),
-    sa.UniqueConstraint('name', 'namespace')
+    sa.UniqueConstraint('name', 'namespace_id', 'repository_id', 'role_type_id')
     )
     op.create_table('license_statuses',
     sa.Column('role_id', sa.Integer(), nullable=False),
@@ -166,15 +172,11 @@ def upgrade():
     sa.PrimaryKeyConstraint('from_id', 'to_id')
     )
     op.create_table('role_versions',
+    sa.Column('role_id', sa.Integer(), nullable=False),
     sa.Column('version_id', sa.Integer(), nullable=False),
-    sa.Column('name', sa.String(length=512), nullable=True),
-    sa.Column('repository', sa.Integer(), nullable=True),
-    sa.Column('role', sa.Integer(), nullable=True),
-    sa.Column('release_date', sa.DateTime(), nullable=True),
-    sa.ForeignKeyConstraint(['repository'], ['repositories.repository_id'], ),
-    sa.ForeignKeyConstraint(['role'], ['roles.role_id'], ),
-    sa.PrimaryKeyConstraint('version_id'),
-    sa.UniqueConstraint('name', 'repository')
+    sa.ForeignKeyConstraint(['role_id'], ['roles.role_id'], ),
+    sa.ForeignKeyConstraint(['version_id'], ['repository_versions.version_id'], ),
+    sa.PrimaryKeyConstraint('role_id', 'version_id')
     )
     op.create_table('tags_association',
     sa.Column('tag_id', sa.Integer(), nullable=False),
@@ -194,6 +196,7 @@ def downgrade():
     op.drop_table('platform_statuses')
     op.drop_table('license_statuses')
     op.drop_table('roles')
+    op.drop_table('repository_versions')
     op.drop_table('repositories')
     op.drop_index(op.f('ix_provider_namespaces_name'), table_name='provider_namespaces')
     op.drop_table('provider_namespaces')
