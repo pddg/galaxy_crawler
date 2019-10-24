@@ -2,6 +2,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from sqlalchemy.orm import sessionmaker
+from tqdm import tqdm
 
 from galaxy_crawler.models.utils import concat_json
 from galaxy_crawler.models import v1 as models
@@ -67,7 +68,7 @@ class JsonLoader(object):
             logger.info(f"{name}: {len(json_objs)} objects were found")
             try:
                 objs = []
-                for j in json_objs:
+                for j in tqdm(json_objs, leave=False, unit="obj"):
                     obj = insert(j, model, session)
                     if obj is not None:
                         objs.append(obj)
@@ -77,6 +78,7 @@ class JsonLoader(object):
                     self.resolver.load_mapping(self.json_dir)
                     depends = self.resolver.resolve(json_objs)
                     session.add_all(depends)
+                logger.info("Try to insert...")
                 session.commit()
             except Exception as e:
                 logger.exception(str(e))

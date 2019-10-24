@@ -166,7 +166,7 @@ class DependencyResolver(object):
         if self.mapped_file is None:
             return
         logger.debug(f"Save role mappings as {self.mapped_file}")
-        with self.mapped_file.open() as f:
+        with self.mapped_file.open('w') as f:
             json.dump(self.id_mappings, f)
 
     def _gen_initial_mappings(self, roles: 'List[Dict[str, Any]]'):

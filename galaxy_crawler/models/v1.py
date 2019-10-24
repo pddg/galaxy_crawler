@@ -453,7 +453,7 @@ class RoleVersion(BaseModel):
 
 class RepositoryVersion(BaseModel, ModelInterfaceMixin):
     __tablename__ = "repository_versions"
-    version_id = Column(Integer, primary_key=True, autoincrement=True)
+    version_id = Column(Integer, primary_key=True, autoincrement=False)
     name = Column(String(MAX_INDEXED_STR))
 
     repository_id = Column(Integer, ForeignKey('repositories.repository_id'))
@@ -572,7 +572,7 @@ class Role(BaseModel, ModelInterfaceMixin):
                 version_id=v['id'],
                 name=v['name'],
                 repository_id=repository_id,
-                release_date=to_datetime(v['release_date']))
+                release_date=to_datetime(v['release_date'])).update_or_create(session)
             role.versions.append(version)
         return role
 
