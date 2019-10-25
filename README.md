@@ -78,6 +78,10 @@ You can specify the information of database by environment variable.
 
 **NOTE**: This command will delete the tables in the specified database.
 
+## Database Scheme
+
+![img](scheme.svg)
+
 ## Author
 
 pddg
