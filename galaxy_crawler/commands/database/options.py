@@ -16,6 +16,8 @@ class StorageOption(uroboros.Option):
         return parser
 
     def validate(self, args: 'argparse.Namespace') -> 'List[Exception]':
+        if args.storage is None:
+            return []
         error = engine.EngineType.validate(args.storage)
         if error is None:
             return []

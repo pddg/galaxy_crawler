@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from galaxy_crawler import constants
-from galaxy_crawler.constants import Target
+from galaxy_crawler.constants import Target, ENV_VARS_PREFIX
 
 if TYPE_CHECKING:
     from typing import Union, List, Optional
@@ -41,7 +41,6 @@ def reject_none(dict_obj: 'dict') -> 'dict':
 
 
 class Config(object):
-    ENV_VARS_PREFIX = "GALAXY_CRAWLER_"
 
     def __init__(self,
                  output_dir: 'Path' = None,
@@ -114,7 +113,7 @@ class Config(object):
         config_dict = dict()
         env_vars = os.environ
         for key in keys:
-            env_key = cls.ENV_VARS_PREFIX + key.upper()
+            env_key = f"{ENV_VARS_PREFIX}_ {key.upper()}"
             if key not in env_vars:
                 continue
             value = os.getenv(env_key)

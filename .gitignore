@@ -188,3 +188,4 @@ fabric.properties
 # Ignore output dir
 output
 *.db
+.envrc

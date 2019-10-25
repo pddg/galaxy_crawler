@@ -12,7 +12,17 @@ DEFAULT_DEBUG = False
 DEFAULT_OUTPUT_FORMAT = ['json']
 DEFAULT_ORDER_BY = "id"
 DEFAULT_FILTERS = []
-DEFAULT_BACKEND = 'postgres'
+
+DEFAULT_DB_TYPE = 'postgres'
+DEFAULT_DB_HOST = '127.0.0.1'
+DEFAULT_DB_PORT = '5432'
+DEFAULT_DB_NAME = 'galaxy'
+DEFAULT_DB_USER = 'galaxy'
+DEFAULT_DB_PASSWORD = 'galaxy'
+DEFAULT_DB_PATH = 'sqlite3.db'
+
+# Prefix of environment variables
+ENV_VARS_PREFIX = "GALAXY"
 
 
 class Target(Enum):

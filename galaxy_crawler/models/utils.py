@@ -75,30 +75,6 @@ def get_role_name_from_json(j: 'dict') -> str:
     return name
 
 
-def resolve_dependencies(all_roles: 'List[dict]'):
-    # Collect role ids and create dict by role name
-    role_dict = {}
-    for r in all_roles:
-        role_id = r['id']
-        name = get_role_name_from_json(r)
-        role_dict[name] = role_id
-    # Find dependencies
-    for i in range(len(all_roles)):
-        r = all_roles[i]
-        depends_ids = []
-        depends = r['summary_fields']['dependencies']
-        for d_name in depends:
-            id_ = role_dict.get(d_name)
-            if id_ is None:
-                name = get_role_name_from_json(r)
-                logger.warning(f"Failed to resolve dependency for {name}: "
-                               f"'{d_name}' was not found")
-                continue
-            depends_ids.append(id_)
-        all_roles[i]['summary_fields']['dependencies'] = depends_ids
-    return all_roles
-
-
 class RoleNotFound(Exception):
 
     def __init__(self, role_name: str, role_id: 'Optional[int]'):

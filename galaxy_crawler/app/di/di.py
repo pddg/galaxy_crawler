@@ -74,6 +74,8 @@ class AppComponent(object):
 
     def get_engine(self):
         url = self.config.storage
+        if url is None:
+            return EngineType.from_env_var().get_engine()
         et = EngineType.from_url(url)
         return et.get_engine(url)
 
