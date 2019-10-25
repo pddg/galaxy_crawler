@@ -16,58 +16,67 @@ $ pipenv install
 ## How to use
 
 ```bash
-$ pipenv run galaxy start -h
-usage: cli.py start [-h] [--debug] [--log-dir LOG_DIR] [--version {v1}]
-                    [--interval INTERVAL] [--retry RETRY]
-                    [--format {json} [{json} ...]]
-                    [--order-by {download,star,contributor_name,relevance,fork,watcher}]
-                    [--inverse] [--filters [FILTERS [FILTERS ...]]]
-                    output_dir
+$ pipenv run galaxy --help
+usage: galaxy [-h] [--version] [--debug] [--log-dir LOG_DIR]
+              {crawl,db,load} ...
 
-positional arguments:
-  output_dir            Path to output
+Ansible Galaxy crawler
 
 optional arguments:
-  -h, --help            show this help message and exit
-  --version {v1}        The API version of galaxy.ansible.com
-  --interval INTERVAL   Fetch interval (default=10)
-  --retry RETRY         Number of retrying (default=3)
-  --format {json} [{json} ...]
-                        Output format (default=['json'])
-  --order-by {download,star,contributor_name,relevance,fork,watcher}
-                        Query order (default=download). It is a descending
-                        order by default.
-  --inverse             If this specified, make the order of query inverse
-  --filters [FILTERS [FILTERS ...]]
-                        Filter expression (e.g. download>500). Available
-                        filter types are ('download', 'star', 'fork',
-                        'ansible')
+  -h, --help         show this help message and exit
+  --version          Show version
 
 LOGGING:
-  --debug               Enable debug logging
-  --log-dir LOG_DIR     Log output directory
+  --debug            Enable debug logging
+  --log-dir LOG_DIR  Log output directory
+
+Sub commands:
+  {crawl,db,load}
+    crawl            Crawl Ansible Galaxy API
+    db               Sub command for DB
+    load             Role info from JSON to DB
 ```
 
-Example is as follows.
+### 1. Obtain json objs from Ansible Galaxy
 
 ```bash
-$ pipenv run galaxy start \
+$ pipenv run galaxy crawl \
     /path/to/output \
-    --interval 30 \
-    --retry 5 \
-    --version v1 \
-    --order-by download \
-    --filter download>1000 \
-    --format json
+    --interval 5
 ```
 
-### Multiple filter
+`crawl` command will take many hours.
 
-Multiple filter feature is supported. Following option is interpreted as `download > 1000 && star > 50`.
+### 3. Insert them into DB
+
+`load` command try to insert them into database. Following databases are supported.
+
+- PostgreSQL
+    - `psycopg2-binary` is required
+- MySQL/MariaDB
+    - `pymysql` is required
+- SQLite3
 
 ```bash
---filter download>1000 star>50
+$ pipenv galaxy load \
+    /path/to/json_dir \
+    --storage postgresql://user:password@host:port/db \
+    --interval 5
 ```
+
+You can specify the information of database by environment variable.
+
+| Env var            | Default value |
+| ------------------ | ------------- |
+| GALAXY_DB_TYPE     | postgres     |
+| GALAXY_DB_HOST     | 127.0.0.1     |
+| GALAXY_DB_PORT     | 5432          |
+| GALAXY_DB_NAME     | galaxy        |
+| GALAXY_DB_USER     | galaxy        |
+| GALAXY_DB_PASSWORD | galaxy        |
+| GALAXY_DB_PATH     | sqlite3.db    |
+
+**NOTE**: This command will delete the tables in the specified database.
 
 ## Author
 
