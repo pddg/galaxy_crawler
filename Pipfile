@@ -16,6 +16,8 @@ pytest = "*"
 galaxy-crawler = {editable = true,path = "."}
 uroboros = ">=0.2.0"
 tqdm = "*"
+numpy = "*"
+pandas = "*"
 
 [requires]
 python_version = "3.7"
