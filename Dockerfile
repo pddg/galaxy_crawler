@@ -12,6 +12,8 @@ RUN apk update && \
         postgresql-libs \
         git && \
     apk add --virtual .build-deps gcc musl-dev postgresql-dev && \
+    pip3 install --no-cache-dir --no-build-isolation \
+        pandas=0.25.2 && \
     pipenv install --system --deploy && \
     pip3 install --no-cache-dir \
         psycopg2-binary==2.8.3 \
