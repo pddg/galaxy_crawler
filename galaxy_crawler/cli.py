@@ -1,6 +1,6 @@
 import logging
 
-from galaxy_crawler.commands import root, crawl, db, load
+from galaxy_crawler.commands import root, crawl, db, load, clone
 
 logger = logging.getLogger(__name__)
 
@@ -11,6 +11,7 @@ def main():
         crawl.command,
         db.command,
         load.command,
+        clone.command,
     )
     return root_cmd.execute()
 

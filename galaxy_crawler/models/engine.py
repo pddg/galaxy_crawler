@@ -133,7 +133,7 @@ class EngineType(Enum):
             envs = os.environ
         db_type = envs.get(ENV_VARS_PREFIX + f"_DB_TYPE")
         if db_type is None:
-            raise InsufficientParameter('path', ENV_VARS_PREFIX + '_DB')
+            raise InsufficientParameter('type', ENV_VARS_PREFIX + '_DB')
         db_type = db_type.lower()
         if db_type not in cls.choices():
             raise InvalidParameter('DB_TYPE', f"One of {cls.choices()}")

@@ -189,3 +189,4 @@ fabric.properties
 output
 *.db
 .envrc
+bin

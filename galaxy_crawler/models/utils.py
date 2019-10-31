@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 from urllib import parse
 
 import requests
+from sqlalchemy.orm import sessionmaker, scoped_session
 
 from galaxy_crawler.models import v1 as models
 from galaxy_crawler.constants import Target
@@ -193,3 +194,8 @@ class DependencyResolver(object):
     def _sleep(self):
         logger.debug(f"Wait for {self.interval} sec...")
         time.sleep(self.interval)
+
+
+def get_scoped_session(engine) -> 'Session':
+    session = sessionmaker(bind=engine)
+    return scoped_session(session)
