@@ -8,7 +8,9 @@ COPY . ${PROJECT_DIR}
 WORKDIR ${PROJECT_DIR}
 
 RUN apk update && \
-    apk add postgresql-libs && \
+    apk add \
+        postgresql-libs \
+        git && \
     apk add --virtual .build-deps gcc musl-dev postgresql-dev && \
     pipenv install --system --deploy && \
     pip3 install --no-cache-dir \
