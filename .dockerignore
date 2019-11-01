@@ -198,3 +198,5 @@ output/
 .git/
 .idea/
 *.db
+.vscode
+bin/
