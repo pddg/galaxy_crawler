@@ -106,6 +106,7 @@ class TestRoleModel(ModelTestBase):
     def test_insert(self, role_json):
         sess = create_session(self.engine)
         role = models.Role.from_json(role_json, sess)  # type: models.Role
+        sess.add(role)
         sess.commit()
         assert role.role_id == role_json.get("id")
         assert role.namespace.name == \

@@ -1,7 +1,7 @@
 import pytest
 
 from galaxy_crawler.models import v1 as model
-from galaxy_crawler.models import utils
+from galaxy_crawler import utils
 from .base import ModelTestBase, create_session
 
 

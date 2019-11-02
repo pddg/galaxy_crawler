@@ -72,6 +72,7 @@ class TestRepositoryModel(ModelTestBase):
     def test_insert(self, repo_json):
         sess = create_session(self.engine)
         repo = models.Repository.from_json(repo_json, sess)
+        sess.add(repo)
         sess.commit()
         assert repo.repository_id == repo_json['id']
         assert repo.provider_namespace.provider_namespace_id == \

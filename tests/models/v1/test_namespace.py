@@ -42,6 +42,7 @@ class TestNamespaceModel(ModelTestBase):
     def test_insert(self, ns_json):
         sess = create_session(self.engine)
         ns = model.Namespace.from_json(ns_json, sess)
+        sess.add(ns)
         sess.commit()
         assert ns.namespace_id == ns_json['id']
         for key in ns_keys + ["name"]:

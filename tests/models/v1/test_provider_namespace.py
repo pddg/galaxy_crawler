@@ -64,6 +64,7 @@ class TestProviderNamespaceModel(ModelTestBase):
     def test_insert(self, nsp_json):
         sess = create_session(self.engine)
         nsp = models.ProviderNamespace.from_json(nsp_json, sess)
+        sess.add(nsp)
         sess.commit()
         assert nsp.provider_namespace_id == nsp_json['id']
         for key in ns_keys + ["name"]:

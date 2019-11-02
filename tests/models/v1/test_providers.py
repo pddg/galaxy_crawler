@@ -1,4 +1,4 @@
-from galaxy_crawler.models import utils
+from galaxy_crawler import utils
 from galaxy_crawler.models import v1 as model
 
 from .base import ModelTestBase, create_session
@@ -20,6 +20,7 @@ class TestProviderModel(ModelTestBase):
         }
         sess = create_session(self.engine)
         provider = model.Provider.from_json(j, sess)
+        sess.add(provider)
         sess.commit()
         assert provider.provider_id == j['id']
         assert provider.name == j['name']
