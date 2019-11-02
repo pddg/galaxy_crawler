@@ -44,20 +44,33 @@ class GHQ(object):
     N_JOBS = 6
     INTERVAL = 5
 
+    # Commands
+    CLONE_CMD = "clone"
+    LIST_CMD = "list"
+
     def __init__(self, ghq_binary: 'Path', clone_dest: 'Path'):
         if not ghq_binary.exists():
             ghq_binary = _download_ghq_binary(ghq_binary.parent)
         self.ghq = ghq_binary
         self.dest = clone_dest
-        self._options = ["-u", "-P"]
+        self._options = {
+            self.CLONE_CMD: ["-u", "-P"],
+            self.LIST_CMD: ["-p"]
+        }
 
-    def set_options(self, args: 'List[str]'):
-        self._options = args
+    def set_options(self, command: str, args: 'List[str]'):
+        self._options[command] = args
 
-    def _get_ghq_process(self):
+    def get_options(self, command: str) -> 'List[str]':
+        opts = self._options.get(command)
+        if opts is not None:
+            return opts
+        return []
+
+    def _get_ghq_process(self, command: str):
         env_vars = os.environ
         return subprocess.Popen(
-            [str(self.ghq), "import", *self._options],
+            [str(self.ghq), command, *self.get_options(command)],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
@@ -73,7 +86,7 @@ class GHQ(object):
             pbar = tqdm(steps, total=len(repositories), desc="Cloned Repos", unit="repo")
             for i in steps:
                 # Spawn ghq process every time
-                ghq_process = self._get_ghq_process()
+                ghq_process = self._get_ghq_process(self.CLONE_CMD)
                 to_dl = repositories[i:i+self.N_JOBS]
                 inputs = "\n".join(to_dl)
                 stdout, stderr = ghq_process.communicate(inputs)
@@ -89,3 +102,16 @@ class GHQ(object):
                 ghq_process.terminate()
                 ghq_process.wait(60)
             logger.error("Done")
+        return self.list()
+
+    def list(self) -> 'List[str]':
+        ghq_process = self._get_ghq_process(self.LIST_CMD)
+        try:
+            stdout, _ = ghq_process.communicate()
+            return stdout.split("\n")
+        except Exception as e:
+            logger.error(e)
+            return []
+        finally:
+            ghq_process.terminate()
+            ghq_process.wait()

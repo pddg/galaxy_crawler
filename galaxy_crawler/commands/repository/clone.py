@@ -10,7 +10,7 @@ from uroboros.constants import ExitStatus
 from galaxy_crawler.ghq import GHQ
 from galaxy_crawler.models import v1 as models
 from galaxy_crawler.models.utils import get_scoped_session
-from .database.options import StorageOption
+from galaxy_crawler.commands.database.options import StorageOption
 
 if TYPE_CHECKING:
     import argparse

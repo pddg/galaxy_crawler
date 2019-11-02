@@ -287,9 +287,8 @@ class ProviderNamespace(BaseModel, ModelInterfaceMixin):
     provider_id = Column(Integer,
                          ForeignKey('providers.provider_id'), nullable=True)
     provider = relationship("Provider",
-                            single_parent=True,
                             back_populates="provider_namespaces",
-                            cascade="all, delete-orphan")  # type: Provider
+                            cascade="save-update, merge, all")  # type: Provider
     namespace_id = Column(Integer,
                           ForeignKey('namespaces.namespace_id'))
     namespace = relationship("Namespace",
@@ -298,7 +297,7 @@ class ProviderNamespace(BaseModel, ModelInterfaceMixin):
                              cascade="all, delete-orphan")  # type: Namespace
     repositories = relationship("Repository",
                                 back_populates="provider_namespace",
-                                cascade="all, delete-orphan")
+                                cascade="save-update, merge, all, delete-orphan")
 
     is_active = Column(Boolean, nullable=True)
     _pk = 'provider_namespace_id'
