@@ -1,7 +1,8 @@
 import logging
-from typing import TYPE_CHECKING
-from threading import Lock
 from datetime import datetime
+from threading import Lock
+from typing import TYPE_CHECKING
+
 import colorlog
 
 if TYPE_CHECKING:
