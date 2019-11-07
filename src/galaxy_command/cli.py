@@ -1,6 +1,6 @@
 import logging
 
-from galaxy_crawler.commands import root, crawl, db, load, repo
+from .commands import root, crawl, db, load, repo
 
 logger = logging.getLogger(__name__)
 

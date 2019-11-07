@@ -6,10 +6,11 @@ import uroboros
 from uroboros.constants import ExitStatus
 
 from galaxy_crawler import version
-from galaxy_crawler.app.config import Config
-from galaxy_crawler.app.di import AppComponent
-from galaxy_crawler.logger import enable_file_logger, enable_stream_handler
 from galaxy_crawler.utils import mkdir
+
+from galaxy_command.logger import enable_file_logger, enable_stream_handler
+from galaxy_command.app.config import Config
+from galaxy_command.app.di import AppComponent
 
 if TYPE_CHECKING:
     import argparse

@@ -13,11 +13,11 @@ from galaxy_crawler.utils import mkdir
 
 if TYPE_CHECKING:
     from typing import List, Type
-    from galaxy_crawler.app.config import Config
     from galaxy_crawler.repositories import ResponseDataStore, RDBStorage
     from galaxy_crawler.queries import QueryBuilder, QueryOrder
     from galaxy_crawler.filters import Filter
     from galaxy_crawler.constants import Target
+    from galaxy_command.app.config import Config
 
 
 class AppComponent(object):
