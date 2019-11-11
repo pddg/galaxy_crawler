@@ -1,4 +1,6 @@
 import logging
+import time
+from multiprocessing import Lock
 from typing import TYPE_CHECKING
 
 import yaml
@@ -8,20 +10,25 @@ from yaml.parser import ParserError
 
 from . import utils
 from .module_parsers import GeneralModuleParser
+from .monorepo import RoleFinder
 
 if TYPE_CHECKING:
     from typing import Union, Dict, Optional, List, Type
     from pathlib import Path
+    from threading import Lock
 
     from .module_parsers import ModuleParser
     from galaxy_crawler.models.v1 import Role
 
 logger = logging.getLogger(__name__)
 
+_repo_locks = dict()  # type: Dict[str, Lock]
+_role_dir_maps = dict()  # type: Dict[str, RoleFinder]
+
 
 class TaskParser(object):
     """
-    Parse all tasks in a Role
+    Parse all tasks in a Role. This class is a thread safe.
     """
     block_directives = [
         'block',
@@ -36,10 +43,40 @@ class TaskParser(object):
     def __init__(self, role: 'Role', ghq_root: 'Union[str, Path]'):
         self.role = role
         self._ghq_root = utils.to_path(ghq_root)
-        self._role_path = self._ghq_root / utils.to_role_path(role.repository.clone_url)
+        # Path to the repository
+        self._repo_path = self._ghq_root / utils.to_role_path(role.repository.clone_url)
+
+        # Configure role and repository path mapper
+        if self._get_role_map() is None:
+            _role_dir_maps[str(self._repo_path)] = RoleFinder(self._repo_path)
+
+        # Path to the role
+        # This may different from _repo_path because the repo uses monorepo structure.
+        if self._get_role_map().is_monorepo():
+            if not self._get_role_map().is_mapped():
+                self._get_repo_lock().acquire()
+                try:
+                    self._get_role_map().construct_map()
+                finally:
+                    self._get_repo_lock().release()
+            self._role_path = self._get_role_map().find(self.role.name)
+        else:
+            self._role_path = self._repo_path
         self.repo = Repo(str(self._role_path))
         self.parsers = dict()  # type: Dict[str, Type[ModuleParser]]
         self.role_name = f"{self.role.namespace.name}/{self.role.name}"
+
+    def _get_role_map(self) -> 'RoleFinder':
+        return _role_dir_maps.get(str(self._repo_path))
+
+    def _get_repo_lock(self) -> 'Lock':
+        l = _repo_locks.get(str(self._repo_path))
+        if l is None:
+            _repo_locks[str(self._repo_path)] = Lock()
+        return _repo_locks[str(self._repo_path)]
+
+    def _clear_lock(self):
+        del _repo_locks[str(self._repo_path)]
 
     def set_parser(self, *parsers: 'Type[ModuleParser]'):
         for parser in parsers:
@@ -110,18 +147,26 @@ class TaskParser(object):
             if not isinstance(latest, str):
                 latest = latest.name
             version = latest
-        self._checkout(version)
-        yml_contents = []
-        for t in self.parse_targets:
-            content = self._concat_yaml(t)
-            yml_contents.append(content)
-        yml_contents = [y for y in yml_contents if y is not None]
-        if len(yml_contents) == 0:
-            return []
-        # Filter `None` to concat all YAMLs
-        tasks = yml_contents[0]
-        for yml_content in yml_contents[1:]:
-            tasks += yml_content
+        # If the repository is a monorepo, lock the repository to use.
+        self._get_repo_lock().acquire()
+        try:
+            self._checkout(version)
+            yml_contents = []
+            for t in self.parse_targets:
+                content = self._concat_yaml(t)
+                yml_contents.append(content)
+            # Filter `None` to concat all YAMLs
+            yml_contents = [y for y in yml_contents if y is not None]
+            if len(yml_contents) == 0:
+                return []
+            tasks = yml_contents[0]
+            for yml_content in yml_contents[1:]:
+                tasks += yml_content
+        finally:
+            self._get_repo_lock().release()
+            self._clear_lock()
+        # Avoid ZMQError
+        self.repo.close()
         parsed_tasks = []
         if tasks.content is None:
             self._log(f"{self.role_name}: No content", logging.WARNING)
