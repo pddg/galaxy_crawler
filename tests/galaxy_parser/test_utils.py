@@ -15,4 +15,4 @@ class TestToRolePath(object):
     )
     def test_normal(self, url, expected):
         actual = utils.to_role_path(url)
-        assert actual == expected
+        assert str(actual) == str(expected)

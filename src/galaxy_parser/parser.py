@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING
 
 import yaml
 from git import Repo
+from yaml.constructor import ConstructorError
 
 from . import utils
 
@@ -37,6 +38,7 @@ class TaskParser(object):
         self._role_path = self._ghq_root / utils.to_role_path(role.repository.clone_url)
         self.repo = Repo(str(self._role_path))
         self.parsers = dict()  # type: Dict[str, Type[ModuleParser]]
+        self.role_name = f"{self.role.namespace.name}/{self.role.name}"
 
     def set_parser(self, *parsers: 'Type[ModuleParser]'):
         for parser in parsers:
@@ -51,7 +53,11 @@ class TaskParser(object):
         ymls = list(target_path.glob('*.yml')) + list(target_path.glob('*.yaml'))
         for yml in ymls:
             logger.debug(f'Load YAML: {yml}')
-            current_yml = YAMLFile(yml)
+            try:
+                current_yml = YAMLFile(yml)
+            except ConstructorError as e:
+                logger.error(f"{self.role_name}: YAML parse failed due to '{e}'")
+                continue
             if yml_file is None:
                 yml_file = current_yml
             else:
@@ -74,11 +80,14 @@ class TaskParser(object):
                 break
         if parser is None:
             return parsed_tasks
-        parsed_tasks.append(parser(**task))
+        try:
+            parsed_tasks.append(parser(**task))
+        except Exception as e:
+            logger.error(f"{self.role_name}: Task parse failed due to '{e}'")
         return parsed_tasks
 
     def _checkout(self, version: 'str'):
-        logger.debug(f'Checkout: {self._role_path} -> {version}')
+        logger.debug(f'Checkout: {self.role_name} -> {version}')
         self.repo.git.checkout(version)
 
     def parse(self, version: 'Optional[str]' = None) -> 'List[ModuleParser]':
@@ -98,10 +107,18 @@ class TaskParser(object):
         for t in self.parse_targets:
             content = self._concat_yaml(t)
             yml_contents.append(content)
+        yml_contents = [y for y in yml_contents if y is not None]
+        if len(yml_contents) == 0:
+            return []
         # Filter `None` to concat all YAMLs
-        yml_content = sum([y for y in yml_contents if y is not None], [])
+        tasks = yml_contents[0]
+        for yml_content in yml_contents[1:]:
+            tasks += yml_content
         parsed_tasks = []
-        for task in yml_content:
+        if tasks.content is None:
+            logger.warning(f"{self.role_name}: No content")
+            return parsed_tasks
+        for task in tasks.content:
             parsed = self._parse(task)
             if parsed is None:
                 continue
@@ -117,9 +134,11 @@ class YAMLFile(object):
         if not self.path.exists():
             raise FileNotFoundError(f"'{self.path}' does not exists.")
         with self.path.open('r', encoding='utf-8') as f:
-            self.content = yaml.load(f)
+            self.content = yaml.load(f, Loader=yaml.UnsafeLoader)
 
     def __add__(self, other: 'YAMLFile'):
         assert isinstance(other, self.__class__)
+        if other.content is None:
+            return self
         self.content += other.content
         return self
