@@ -135,6 +135,9 @@ class YAMLFile(object):
             raise FileNotFoundError(f"'{self.path}' does not exists.")
         with self.path.open('r', encoding='utf-8') as f:
             self.content = yaml.load(f, Loader=yaml.UnsafeLoader)
+        # If the YAML has no content
+        if self.content is None:
+            self.content = []
 
     def __add__(self, other: 'YAMLFile'):
         assert isinstance(other, self.__class__)
