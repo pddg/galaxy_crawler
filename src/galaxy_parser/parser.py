@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 import yaml
 from git import Repo
 from yaml.constructor import ConstructorError
+from yaml.parser import ParserError
 
 from . import utils
 
@@ -13,7 +14,6 @@ if TYPE_CHECKING:
 
     from .module_parsers import ModuleParser
     from galaxy_crawler.models.v1 import Role
-
 
 logger = logging.getLogger(__name__)
 
@@ -134,7 +134,11 @@ class YAMLFile(object):
         if not self.path.exists():
             raise FileNotFoundError(f"'{self.path}' does not exists.")
         with self.path.open('r', encoding='utf-8') as f:
-            self.content = yaml.load(f, Loader=yaml.UnsafeLoader)
+            try:
+                self.content = yaml.load(f, Loader=yaml.UnsafeLoader)
+            except ParserError as e:
+                logger.error(f"'{self.path}' has a invalid syntax. '{e}'")
+                self.content = None
         # If the YAML has no content
         if self.content is None:
             self.content = []
