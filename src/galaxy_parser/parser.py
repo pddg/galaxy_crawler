@@ -7,6 +7,7 @@ from yaml.constructor import ConstructorError
 from yaml.parser import ParserError
 
 from . import utils
+from .module_parsers import GeneralModuleParser
 
 if TYPE_CHECKING:
     from typing import Union, Dict, Optional, List, Type
@@ -45,6 +46,9 @@ class TaskParser(object):
             name = parser.name
             self.parsers[name] = parser
 
+    def _log(self, msg: str, level: int = logging.DEBUG):
+        logger.log(level, f"{self.role_name}: {msg}")
+
     def _concat_yaml(self, target: 'str') -> 'Optional[YAMLFile]':
         target_path = self._role_path / target
         if not target_path.exists():
@@ -52,11 +56,11 @@ class TaskParser(object):
         yml_file = None
         ymls = list(target_path.glob('*.yml')) + list(target_path.glob('*.yaml'))
         for yml in ymls:
-            logger.debug(f'Load YAML: {yml}')
+            self._log(f'Load YAML: {yml}')
             try:
                 current_yml = YAMLFile(yml)
             except ConstructorError as e:
-                logger.error(f"{self.role_name}: YAML parse failed due to '{e}'")
+                self._log(f"YAML parse failed due to '{e}'", logging.ERROR)
                 continue
             if yml_file is None:
                 yml_file = current_yml
@@ -79,16 +83,20 @@ class TaskParser(object):
                 parser = self.parsers[name]
                 break
         if parser is None:
-            return parsed_tasks
+            # Try to parse with general parser if there is no appropriate parser.
+            parser = GeneralModuleParser
         try:
             parsed_tasks.append(parser(**task))
         except Exception as e:
-            logger.error(f"{self.role_name}: Task parse failed due to '{e}'")
+            self._log(f"Task parse failed due to '{e}'", logging.ERROR)
         return parsed_tasks
 
     def _checkout(self, version: 'str'):
         logger.debug(f'Checkout: {self.role_name} -> {version}')
-        self.repo.git.checkout(version)
+        try:
+            self.repo.git.checkout(version)
+        except Exception as e:
+            self._log(f"Git checkout failed due to '{e}'", logging.ERROR)
 
     def parse(self, version: 'Optional[str]' = None) -> 'List[ModuleParser]':
         """
@@ -116,7 +124,7 @@ class TaskParser(object):
             tasks += yml_content
         parsed_tasks = []
         if tasks.content is None:
-            logger.warning(f"{self.role_name}: No content")
+            self._log(f"{self.role_name}: No content", logging.WARNING)
             return parsed_tasks
         for task in tasks.content:
             parsed = self._parse(task)

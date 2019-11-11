@@ -1,4 +1,4 @@
-from .base import ModuleParser, BaseCommandModuleParser
+from .base import ModuleParser, BaseCommandModuleParser, GeneralModuleParser
 
 from .command import CommandModuleParser
 from .script import ScriptModuleParser

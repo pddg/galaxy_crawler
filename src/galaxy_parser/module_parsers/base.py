@@ -44,6 +44,11 @@ class ModuleParser(object):
         return self._kwargs.get('args', dict())
 
 
+class GeneralModuleParser(ModuleParser):
+    """Subclass of Module parser for global module parsing"""
+    pass
+
+
 class BaseCommandModuleParser(ModuleParser):
 
     def get_command(self) -> 'Tuple[str, bool]':
