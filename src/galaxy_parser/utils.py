@@ -1,9 +1,17 @@
+import os
+import time
+import logging
 from pathlib import Path
 from urllib.parse import urlparse
 from typing import TYPE_CHECKING
+from multiprocessing import Pool
+
+from tqdm import tqdm
 
 if TYPE_CHECKING:
-    from typing import Union
+    from typing import Union, Callable, Any, List
+
+logger = logging.getLogger(__name__)
 
 
 def to_role_path(url: str) -> 'Path':
@@ -34,3 +42,36 @@ def to_path(p: 'Union[str, Path]') -> 'Path':
         return resolve(Path(p))
     else:
         TypeError(f'str or Path is expected, got {p.__class__.__name__}')
+
+
+def parallel(func: 'Callable[[Any], Any]', iterable: 'List[Any]', n_jobs: int = -1) -> 'List[Any]':
+    if n_jobs < 0:
+        n_jobs = os.cpu_count()
+    if n_jobs > len(iterable):
+        n_jobs = len(iterable)
+    if n_jobs == 1:
+        return [func(it) for it in iterable]
+    with Pool(n_jobs) as pool:
+        progress_bar = tqdm(total=len(iterable), leave=False)
+        finished = 0
+        results = [pool.apply_async(func, (it,)) for it in iterable]
+        try:
+            while True:
+                time.sleep(0.5)
+                statuses = [r.ready() for r in results]
+                finished_now = statuses.count(True)
+                progress_bar.update(finished_now - finished)
+                finished = finished_now
+                if all(statuses):
+                    break
+            results = [r.get(1) for r in results]
+            pool.close()
+            pool.join()
+        except KeyboardInterrupt:
+            logger.error("SIGTERM Received. Shutdown workers.")
+            pool.terminate()
+            logger.error("Wait for shutting down...")
+            pool.join()
+        finally:
+            progress_bar.close()
+    return results
