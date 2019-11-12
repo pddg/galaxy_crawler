@@ -1,29 +1,18 @@
 import logging
-import time
-from multiprocessing import Lock
 from typing import TYPE_CHECKING
-
-import yaml
-from git import Repo
-from yaml.constructor import ConstructorError
-from yaml.parser import ParserError
 
 from . import utils
 from .module_parsers import GeneralModuleParser
-from .monorepo import RoleFinder
+from .repository import Repository
 
 if TYPE_CHECKING:
     from typing import Union, Dict, Optional, List, Type
     from pathlib import Path
-    from threading import Lock
 
     from .module_parsers import ModuleParser
     from galaxy_crawler.models.v1 import Role
 
 logger = logging.getLogger(__name__)
-
-_repo_locks = dict()  # type: Dict[str, Lock]
-_role_dir_maps = dict()  # type: Dict[str, RoleFinder]
 
 
 class TaskParser(object):
@@ -45,38 +34,9 @@ class TaskParser(object):
         self._ghq_root = utils.to_path(ghq_root)
         # Path to the repository
         self._repo_path = self._ghq_root / utils.to_role_path(role.repository.clone_url)
-
-        # Configure role and repository path mapper
-        if self._get_role_map() is None:
-            _role_dir_maps[str(self._repo_path)] = RoleFinder(self._repo_path)
-
-        # Path to the role
-        # This may different from _repo_path because the repo uses monorepo structure.
-        if self._get_role_map().is_monorepo():
-            if not self._get_role_map().is_mapped():
-                self._get_repo_lock().acquire()
-                try:
-                    self._get_role_map().construct_map()
-                finally:
-                    self._get_repo_lock().release()
-            self._role_path = self._get_role_map().find(self.role.name)
-        else:
-            self._role_path = self._repo_path
-        self.repo = Repo(str(self._role_path))
+        self.repo = Repository(self._repo_path)
         self.parsers = dict()  # type: Dict[str, Type[ModuleParser]]
         self.role_name = f"{self.role.namespace.name}/{self.role.name}"
-
-    def _get_role_map(self) -> 'RoleFinder':
-        return _role_dir_maps.get(str(self._repo_path))
-
-    def _get_repo_lock(self) -> 'Lock':
-        l = _repo_locks.get(str(self._repo_path))
-        if l is None:
-            _repo_locks[str(self._repo_path)] = Lock()
-        return _repo_locks[str(self._repo_path)]
-
-    def _clear_lock(self):
-        del _repo_locks[str(self._repo_path)]
 
     def set_parser(self, *parsers: 'Type[ModuleParser]'):
         for parser in parsers:
@@ -85,25 +45,6 @@ class TaskParser(object):
 
     def _log(self, msg: str, level: int = logging.DEBUG):
         logger.log(level, f"{self.role_name}: {msg}")
-
-    def _concat_yaml(self, target: 'str') -> 'Optional[YAMLFile]':
-        target_path = self._role_path / target
-        if not target_path.exists():
-            return None
-        yml_file = None
-        ymls = list(target_path.glob('*.yml')) + list(target_path.glob('*.yaml'))
-        for yml in ymls:
-            self._log(f'Load YAML: {yml}')
-            try:
-                current_yml = YAMLFile(yml)
-            except ConstructorError as e:
-                self._log(f"YAML parse failed due to '{e}'", logging.ERROR)
-                continue
-            if yml_file is None:
-                yml_file = current_yml
-            else:
-                yml_file += current_yml
-        return yml_file
 
     def _parse(self, task: dict) -> 'List[ModuleParser]':
         parsed_tasks = []
@@ -128,13 +69,6 @@ class TaskParser(object):
             self._log(f"Task parse failed due to '{e}'", logging.ERROR)
         return parsed_tasks
 
-    def _checkout(self, version: 'str'):
-        logger.debug(f'Checkout: {self.role_name} -> {version}')
-        try:
-            self.repo.git.checkout(version)
-        except Exception as e:
-            self._log(f"Git checkout failed due to '{e}'", logging.ERROR)
-
     def parse(self, version: 'Optional[str]' = None) -> 'List[ModuleParser]':
         """
         Parse all YAML file in Role. Parse by given ModuleParser.
@@ -148,25 +82,21 @@ class TaskParser(object):
                 latest = latest.name
             version = latest
         # If the repository is a monorepo, lock the repository to use.
-        self._get_repo_lock().acquire()
-        try:
-            self._checkout(version)
-            yml_contents = []
+        yml_contents = []
+        with self.repo as r:
+            r.checkout(version)
+            role_name = None
+            if r.is_monorepo():
+                role_name = self.role.name
             for t in self.parse_targets:
-                content = self._concat_yaml(t)
-                yml_contents.append(content)
-            # Filter `None` to concat all YAMLs
-            yml_contents = [y for y in yml_contents if y is not None]
-            if len(yml_contents) == 0:
-                return []
-            tasks = yml_contents[0]
-            for yml_content in yml_contents[1:]:
-                tasks += yml_content
-        finally:
-            self._get_repo_lock().release()
-            self._clear_lock()
-        # Avoid ZMQError
-        self.repo.close()
+                yaml_content = r.get_yaml(t, role_name)
+                yml_contents.append(yaml_content)
+        yml_contents = [y for y in yml_contents if y is not None]
+        if len(yml_contents) == 0:
+            return []
+        tasks = yml_contents[0]
+        for yml_content in yml_contents[1:]:
+            tasks += yml_content
         parsed_tasks = []
         if tasks.content is None:
             self._log(f"{self.role_name}: No content", logging.WARNING)
@@ -177,28 +107,3 @@ class TaskParser(object):
                 continue
             parsed_tasks.extend(parsed)
         return parsed_tasks
-
-
-class YAMLFile(object):
-
-    def __init__(self, path: 'Union[str, Path]'):
-        self.path = utils.to_path(path)
-        self.base_dir = self.path.parent
-        if not self.path.exists():
-            raise FileNotFoundError(f"'{self.path}' does not exists.")
-        with self.path.open('r', encoding='utf-8') as f:
-            try:
-                self.content = yaml.load(f, Loader=yaml.UnsafeLoader)
-            except ParserError as e:
-                logger.error(f"'{self.path}' has a invalid syntax. '{e}'")
-                self.content = None
-        # If the YAML has no content
-        if self.content is None:
-            self.content = []
-
-    def __add__(self, other: 'YAMLFile'):
-        assert isinstance(other, self.__class__)
-        if other.content is None:
-            return self
-        self.content += other.content
-        return self
