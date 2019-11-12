@@ -527,6 +527,7 @@ class Role(BaseModel, ModelInterfaceMixin):
     versions = relationship('RepositoryVersion',
                             uselist=True,
                             secondary=RoleVersion.__tablename__,
+                            primaryjoin=(RoleVersion.role_id == role_id),
                             back_populates='roles',
                             cascade='all')
 
@@ -591,3 +592,10 @@ class Role(BaseModel, ModelInterfaceMixin):
                 return False
         session.add_all(depends)
         return True
+
+    def get_stable_version(self) -> 'Union[str, RepositoryVersion]':
+        versions = self.versions
+        if len(versions) == 0:
+            return self.repository.commit
+        versions.sort(key=lambda x: x.release_date)
+        return versions[-1]

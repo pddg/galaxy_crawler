@@ -35,7 +35,6 @@ def to_datetime(d_str: 'str') -> 'datetime':
     return as_utc(dt_obj)
 
 
-
 def to_absolute(path: 'Path'):
     if path is None:
         raise ValueError("Path must not be `None`")

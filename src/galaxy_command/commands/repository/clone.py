@@ -9,8 +9,7 @@ from uroboros.constants import ExitStatus
 
 from galaxy_command.commands.database.options import StorageOption
 from galaxy_crawler.ghq import GHQ
-from galaxy_crawler.models import v1 as models
-from galaxy_crawler.models.utils import get_scoped_session
+from galaxy_crawler.models import helper
 
 if TYPE_CHECKING:
     import argparse
@@ -26,49 +25,6 @@ def _to_date(date_str: 'Optional[str]') -> 'Optional[datetime]':
     if date_str is not None:
         return datetime.strptime(date_str, date_format)
     return date_str
-
-
-def _get_roles_with_repos(engine) -> 'pd.DataFrame':
-    session = get_scoped_session(engine)
-    # Get all roles (except Container app) as pandas.DataFrame
-    get_all_role_query = str(session.query(models.Role, models.Repository) \
-                             .join(models.Repository, models.Role.repository_id == models.Repository.repository_id))
-    logger.info("Try to obtain roles from database")
-    role_df = pd.read_sql_query(get_all_role_query, engine, index_col=['roles_role_id'])
-    # Remove column name prefix `roles_`
-    role_df.rename(columns=lambda x: x[6:] if x.startswith("roles_") else x, inplace=True)
-    # Filter to remove Container App
-    role_df = role_df[role_df["role_type_id"] != 3]
-    logger.info(f"{len(role_df)} roles were found")
-    return role_df
-
-
-def _get_roles_limited(roles: 'pd.DataFrame',
-                       threshold: float,
-                       from_date: 'Optional[datetime]',
-                       to_date: 'Optional[datetime]') -> 'pd.DataFrame':
-    if from_date is None:
-        from_date = roles["modified"].min()
-    if to_date is None:
-        to_date = roles["modified"].max()
-    logger.info(f"Filtering roles updated between {str(from_date)} and {str(to_date)}")
-    masks = (roles["modified"] <= to_date) & (roles["modified"] >= from_date)
-    recently_roles = roles.loc[masks]
-    logger.info(f"{len(recently_roles)} roles were found")
-    logger.info(f"Filtering roles by {threshold * 100} percentile")
-    threshold = _get_threshold(roles, threshold)
-    popular_roles = recently_roles[recently_roles["download_count"] >= threshold]
-    logger.info(f"{len(popular_roles)} roles were found")
-    return popular_roles
-
-
-def _get_threshold(roles: 'pd.DataFrame', percentile: float) -> 'pd.Series':
-    """
-    Obtain threshold by percentile
-    """
-    assert 0 <= percentile <= 1, "Percentile should be 0 <= N <= 1."
-    # Updated recently
-    return roles['download_count'].quantile(percentile)
 
 
 def _get_repository_urls(roles: 'pd.DataFrame') -> 'List[str]':
@@ -134,8 +90,28 @@ class CloneCommand(uroboros.Command):
         ghq.N_JOBS = args.n_jobs
         try:
             engine = components.get_engine()
-            roles = _get_roles_with_repos(engine)
-            roles = _get_roles_limited(roles, args.percentile, args.date_from, args.date_to)
+
+            # Get all roles as a pandas.DataFrame
+            logger.info("Try to obtain roles from database")
+            roles = helper.get_roles_df(engine, [3])
+            logger.info(f"{len(roles)} roles were found")
+
+            # Filtering by modified date
+            from_date = args.date_from
+            to_date = args.date_to
+            if from_date is None:
+                from_date = roles["modified"].min()
+            if to_date is None:
+                to_date = roles["modified"].max()
+            logger.info(f"Filtering roles updated between {str(from_date)} and {str(to_date)}")
+            roles = helper.filter_roles_df_by_modified_date(roles, from_date, to_date)
+            logger.info(f"{len(roles)} roles were found")
+
+            # Filtering by download count
+            logger.info(f"Filtering roles by {args.percentile * 100} percentile")
+            roles = helper.filter_roles_df_by_dl_percentile(roles, args.percentile)
+            logger.info(f"{len(roles)} roles were found")
+
             repositories = _get_repository_urls(roles)
             if not args.dry_run:
                 ghq.clone(repositories)

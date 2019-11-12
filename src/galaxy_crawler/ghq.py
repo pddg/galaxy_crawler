@@ -45,7 +45,7 @@ class GHQ(object):
     INTERVAL = 5
 
     # Commands
-    CLONE_CMD = "clone"
+    CLONE_CMD = "import"
     LIST_CMD = "list"
 
     def __init__(self, ghq_binary: 'Path', clone_dest: 'Path'):
@@ -88,11 +88,17 @@ class GHQ(object):
                 # Spawn ghq process every time
                 ghq_process = self._get_ghq_process(self.CLONE_CMD)
                 to_dl = repositories[i:i+self.N_JOBS]
-                inputs = "\n".join(to_dl)
-                stdout, stderr = ghq_process.communicate(inputs)
-                logger.debug("\n" + stdout)
-                pbar.update(len(to_dl))
+                # Append '\n' as suffix
+                to_dl = list(map(lambda x: x + '\n', to_dl))
+                ghq_process.stdin.writelines(to_dl)
+                ghq_process.stdin.close()
+                while True:
+                    line = ghq_process.stdout.readline()
+                    logger.debug(line)
+                    if ghq_process.poll() is not None:
+                        break
                 ghq_process.terminate()
+                pbar.update(len(to_dl))
                 time.sleep(self.INTERVAL)
         except Exception as e:
             logger.exception(str(e))
