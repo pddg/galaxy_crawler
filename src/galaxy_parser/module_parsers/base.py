@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from .utils import get_base_name, is_tmpl_variable
+from .utils import find_command, is_tmpl_variable
 
 if TYPE_CHECKING:
     from typing import Dict, Tuple
@@ -65,7 +65,6 @@ class BaseCommandModuleParser(ModuleParser):
             '/bin/{{ echo_cmd }} "Hello world"' -> ("{{ echo_cmd }}", True)
         :return: Command name and whether a template variable is used
         """
-        base_command = get_base_name(self.command[0])
+        base_command = find_command(self.command)
         is_var = is_tmpl_variable(base_command)
         return base_command, is_var
-

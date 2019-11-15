@@ -1,5 +1,5 @@
+import hashlib
 import logging
-from threading import Lock
 from typing import TYPE_CHECKING
 
 import git
@@ -11,7 +11,7 @@ from . import monorepo
 from . import utils
 
 if TYPE_CHECKING:
-    from typing import Union, Dict, Optional, List
+    from typing import Union, Optional, List
     from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -55,9 +55,6 @@ class Repository(object):
     DO NOT USE WITH MULTIPROCESSING.
     """
 
-    __repositories = dict()  # type: Dict[str, Repository]
-    __instance_lock = Lock()
-
     def __init__(self, repository_path: 'Union[str, Path]'):
         self.path = utils.to_path(repository_path)
         self.repository = git.Repo(str(self.path))
@@ -65,29 +62,6 @@ class Repository(object):
         # If the repository is monorepo, search all roles in it.
         if self.role_finder.is_monorepo():
             self.role_finder.construct_map()
-        self.lock = Lock()
-
-    def __new__(cls, *args, **kwargs):
-        if len(args) > 0:
-            repository_path = args[0]
-        elif 'repository_path' in kwargs.keys():
-            repository_path = kwargs.get('repository_path')
-        else:
-            raise TypeError("__init__() missing 1 required positional argument: 'repository_path'")
-        if not isinstance(repository_path, str):
-            repository_path = str(repository_path)
-        with cls.__instance_lock:
-            if repository_path in cls.__repositories.keys():
-                return cls.__repositories.get(repository_path)
-            cls.__repositories[repository_path] = super().__new__(cls)
-            return cls.__repositories[repository_path]
-
-    def __enter__(self):
-        self.lock.acquire()
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.lock.release()
 
     def checkout(self, version: str):
         try:
@@ -135,3 +109,13 @@ class Repository(object):
 
     def _error(self, msg: str):
         self._log(msg, logging.ERROR)
+
+    def identify(self) -> 'str':
+        """
+        Returns the identity hash (SHA1)
+        :return: Hash string
+        """
+        return hashlib.sha1(str(self.path).encode('utf-8')).hexdigest()
+
+    def cleanup(self):
+        self.repository.close()

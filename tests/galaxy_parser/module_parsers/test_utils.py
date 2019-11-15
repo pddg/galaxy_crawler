@@ -61,6 +61,49 @@ class TestGetBaseName(object):
             utils.get_base_name(command)
 
 
+class TestFindCommand(object):
+    @pytest.mark.parametrize(
+        "command,expected", [
+            (['echo'], 'echo'),
+            (['/bin/echo', 'fuga'], 'echo'),
+            (['./bin/echo', 'piyo'], 'echo'),
+            (['{{hoge}}', 'fuga'], '{{hoge}}'),
+            (['{{', 'hoge}}', 'fuga'], '{{ hoge}}'),
+            (['{{hoge', '}}', 'fuga'], '{{hoge }}'),
+            (['{{', 'hoge', '}}', 'fuga'], '{{ hoge }}'),
+            (['/bin/{{hoge}}', 'fuga'], '{{hoge}}'),
+            (['/bin/{{', 'hoge}}', 'fuga'], '{{ hoge}}'),
+            (['/bin/{{hoge', '}}', 'fuga'], '{{hoge }}'),
+            (['/bin/{{', 'hoge', '}}', 'fuga'], '{{ hoge }}'),
+            (['{{hoge}}/echo', 'fuga'], 'echo'),
+            (['{{', 'hoge}}/echo', 'fuga'], 'echo'),
+            (['{{hoge', '}}/echo', 'fuga'], 'echo'),
+            (['{{ hoge }}/echo', 'fuga'], 'echo'),
+            (['{{', 'hoge', '}}/{{', 'fuga', '}}', 'fuga'], '{{ fuga }}'),
+            (['{{', 'hoge', '}}/{{fuga', '}}', 'fuga'], '{{fuga }}'),
+            (['{{', 'hoge', '}}/{{', 'fuga}}', 'fuga'], '{{ fuga}}'),
+            (['{{', 'hoge', '}}/{{', 'fuga', '}}', 'fuga'], '{{ fuga }}'),
+        ]
+    )
+    def test_normal(self, command, expected):
+        actual = utils.find_command(command)
+        assert actual == expected
+
+    @pytest.mark.parametrize(
+        "command,expected", [
+            ([], AssertionError),
+            (1, TypeError),
+            (0.5, TypeError),
+            ([], AssertionError),
+            ({}, AssertionError),
+            (True, TypeError),
+        ]
+    )
+    def test_error(self, command, expected):
+        with pytest.raises(expected):
+            utils.find_command(command)
+
+
 class TestIsTmplVariable(object):
 
     @pytest.mark.parametrize(

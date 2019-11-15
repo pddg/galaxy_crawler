@@ -105,5 +105,7 @@ class RoleFinder(object):
         :return: Path to role
         """
         if role_name not in self.role_path_map.keys():
-            raise NoSuchRole(role_name, self.repo_path)
+            role_name = role_name.replace('_', '-')
+            if role_name not in self.role_path_map.keys():
+                raise NoSuchRole(role_name, self.repo_path)
         return self.role_path_map.get(role_name)
