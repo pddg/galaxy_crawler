@@ -20,6 +20,7 @@ numpy = "*"
 pandas = "*"
 pyyaml = "*"
 gitpython = "*"
+fasteners = "*"
 
 [requires]
 python_version = "3.7"

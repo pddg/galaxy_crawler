@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import List
 
-
 tmpl_var_re = re.compile(r'{{.+}}')
 
 
@@ -38,6 +37,29 @@ def get_base_name(command: str) -> str:
     return splitted[-1]
 
 
+def find_command(divided_command: 'List[str]') -> str:
+    """
+    Find the command from divided command list with Jinja2 style variable
+    e.g. ["{{", "hoge", "}}", "fuga"] -> "{{ hoge }}"
+    :param divided_command:
+    :return:
+    """
+    assert len(divided_command) > 0
+    base_name = get_base_name(divided_command[0])
+    if base_name.startswith('{{'):
+        if base_name.endswith('}}'):
+            return base_name
+        commands = [base_name]
+        for c in divided_command[1:]:
+            c = c.strip()
+            commands.append(c)
+            if c.endswith('}}'):
+                return ' '.join(commands)
+            elif (c.startswith('}}') or '}}' in c) and len(c) > 2:
+                return find_command(c.split('}')[2:] + divided_command[len(commands):])
+    return base_name
+
+
 def is_tmpl_variable(chars: str) -> bool:
     """
     If given chars are template variable (Jinja2 syntax)
@@ -48,5 +70,3 @@ def is_tmpl_variable(chars: str) -> bool:
     if tmpl_var_re.match(chars):
         return True
     return False
-
-

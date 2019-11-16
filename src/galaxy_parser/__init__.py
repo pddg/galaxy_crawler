@@ -4,4 +4,7 @@ from .module_parsers import (
     ScriptModuleParser,
     ShellModuleParser,
 )
-from .parser import TaskParser
+from .parser import (
+    TaskParser,
+    parse_tasks
+)

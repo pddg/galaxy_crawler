@@ -25,7 +25,8 @@ def get_roles_df(engine: 'Engine', except_role_types: 'Optional[List[int]]' = No
     # Remove column name prefix `roles_`
     role_df.rename(columns=lambda x: x[6:] if x.startswith("roles_") else x, inplace=True)
     if except_role_types is not None:
-        role_df = role_df[role_df["role_type_id"] not in except_role_types]
+        # ~series.isin(some) indicate that `series not in some`
+        role_df = role_df[~role_df["role_type_id"].isin(except_role_types)]
     return role_df
 
 

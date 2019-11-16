@@ -1,11 +1,10 @@
+import logging
 import os
 import time
-import logging
-from pathlib import Path
-from urllib.parse import urlparse
-from typing import TYPE_CHECKING
 from multiprocessing import Pool
-from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+from typing import TYPE_CHECKING
+from urllib.parse import urlparse
 
 from tqdm import tqdm
 
@@ -52,6 +51,27 @@ def parallel(func: 'Callable[[Any], Any]', iterable: 'List[Any]', n_jobs: int = 
         n_jobs = len(iterable)
     if n_jobs == 1:
         return [func(it) for it in iterable]
-    with ThreadPoolExecutor(n_jobs) as executor:
-        results = list(tqdm(executor.map(func, iterable), total=len(iterable)))
+    with Pool(n_jobs) as pool:
+        progress_bar = tqdm(total=len(iterable), leave=False)
+        finished = 0
+        results = [pool.apply_async(func, (it,)) for it in iterable]
+        try:
+            while True:
+                time.sleep(0.5)
+                statuses = [r.ready() for r in results]
+                finished_now = statuses.count(True)
+                progress_bar.update(finished_now - finished)
+                finished = finished_now
+                if all(statuses):
+                    break
+            results = [r.get(1) for r in results]
+            pool.close()
+            pool.join()
+        except KeyboardInterrupt:
+            logger.error("SIGTERM Received. Shutdown workers.")
+            pool.terminate()
+            logger.error("Wait for shutting down...")
+            pool.join()
+        finally:
+            progress_bar.close()
     return results
