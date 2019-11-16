@@ -44,16 +44,6 @@ def to_path(p: 'Union[str, Path]') -> 'Path':
         TypeError(f'str or Path is expected, got {p.__class__.__name__}')
 
 
-# def parallel(func: 'Callable[[Any], Any]', iterable: 'List[Any]', n_jobs: int = -1) -> 'List[Any]':
-#     if n_jobs < 0:
-#         n_jobs = os.cpu_count()
-#     if n_jobs > len(iterable):
-#         n_jobs = len(iterable)
-#     if n_jobs == 1:
-#         return [func(it) for it in iterable]
-#     with ThreadPoolExecutor(n_jobs) as executor:
-#         results = list(tqdm(executor.map(func, iterable), total=len(iterable)))
-#     return results
 def parallel(func: 'Callable[[Any], Any]', iterable: 'List[Any]', n_jobs: int = -1) -> 'List[Any]':
     if n_jobs < 0:
         n_jobs = os.cpu_count()
