@@ -21,6 +21,7 @@ pandas = "*"
 pyyaml = "*"
 gitpython = "*"
 fasteners = "*"
+bashlex = "*"
 
 [requires]
 python_version = "3.7"

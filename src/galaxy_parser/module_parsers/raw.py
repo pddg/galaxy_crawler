@@ -1,5 +1,4 @@
 from .base import ModuleArgs, BaseCommandModuleParser
-from .utils import split_command
 
 
 class RawArgs(ModuleArgs):
@@ -19,4 +18,4 @@ class RawModuleParser(BaseCommandModuleParser):
 
     def __init__(self, **kwargs):
         super(RawModuleParser, self).__init__(**kwargs)
-        self.command = split_command(kwargs.get(self.name))
+        self.command = kwargs.get(self.name).strip()
