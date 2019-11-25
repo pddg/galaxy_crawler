@@ -12,7 +12,8 @@ from galaxy_parser.script_parsers import (
 from .utils import get_base_name
 
 if TYPE_CHECKING:
-    from typing import Dict, Tuple, List
+    from typing import Dict, Tuple, List, Optional
+    from .block import Block
 
 logger = logging.getLogger(__name__)
 
@@ -46,10 +47,25 @@ class ModuleParser(object):
         self.become = kwargs.get('become', False)
         self.become_user = kwargs.get('become_user', 'root')
         self.args = self.args_class(**self.get_args())
+        self._parent = None  # type: Optional[Block]
 
     @classmethod
     def parse(cls, task: 'Dict[str, str]') -> 'ModuleParser':
         return cls(**task)
+
+    def set_parent_block(self, block: 'Block'):
+        self._parent = block
+
+    def get_parent_block(self) -> 'Block':
+        return self._parent
+
+    def has_when(self) -> 'bool':
+        if self.when is not None:
+            return True
+        parent = self.get_parent_block()
+        if parent is None:
+            return False
+        return parent.has_when()
 
     def get_args(self) -> 'dict':
         return self._kwargs.get('args', dict())
