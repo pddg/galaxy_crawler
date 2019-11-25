@@ -5,6 +5,9 @@ verify_ssl = true
 
 [dev-packages]
 pylint = "*"
+black = "*"
+jupyterlab = "*"
+seaborn = "*"
 
 [packages]
 requests = "*"
@@ -28,3 +31,6 @@ python_version = "3.7"
 
 [scripts]
 test = "py.test tests"
+
+[pipenv]
+allow_prereleases = true
