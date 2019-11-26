@@ -34,6 +34,7 @@ class Block(object):
             block.parse(parsers)
             return block
         task = utils.parse_task(task, parsers, GeneralModuleParser)
+        task.set_parent_block(self)
         return task
 
     def parse(self, parsers: 'Dict[str, Type[ModuleParser]]'):
