@@ -89,7 +89,10 @@ class Repository(object):
         yamls = dict()
         for yml in yaml_files:
             try:
-                yamls[str(yml)] = YAMLFile(yml)
+                is_handler = False
+                if dir_name == 'handlers':
+                    is_handler = True
+                yamls[str(yml)] = YAMLFile(yml, is_handler)
             except yaml.constructor.ConstructorError as e:
                 self._error(f"YAML parse failed due to '{e}'")
                 continue
