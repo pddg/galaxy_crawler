@@ -18,7 +18,7 @@ RUN apt-get update && \
         pymysql==0.9.3 \
         jupyterlab==1.2.3 \
         jupyterlab-code-formatter==0.7.0 \
-        pytablewriter==0.46.1 \
+        pytablewriter[html]==0.46.1 \
         black==19.10b0 \
         seaborn==0.9.0 && \
     jupyter labextension install \
