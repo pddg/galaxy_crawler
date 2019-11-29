@@ -8,6 +8,7 @@ pylint = "*"
 black = "*"
 jupyterlab = "*"
 seaborn = "*"
+pytablewriter = "*"
 
 [packages]
 requests = "*"
