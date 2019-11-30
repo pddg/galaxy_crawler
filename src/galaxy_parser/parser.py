@@ -67,12 +67,22 @@ class ParserManager(object):
         all_blocks = sum(self._contents.values(), [])
         return all_blocks
 
-    def get_tasks(self) -> 'List[ModuleParser]':
+    def _get_flatten(self, target) -> 'List[ModuleParser]':
         all_blocks = self.get_blocks()
         tasks = []
         for block in all_blocks:
-            tasks.extend(block.get_all_tasks_flatten())
+            get_func = getattr(block, f'get_{target}_tasks_flattern', block.get_tasks_flatten)
+            tasks.extend(get_func())
         return tasks
+
+    def get_tasks(self) -> 'List[ModuleParser]':
+        return self._get_flatten('regular')
+
+    def get_rescue_tasks(self) -> 'List[ModuleParser]':
+        return self._get_flatten('rescue')
+
+    def get_all_tasks(self) -> 'List[ModuleParser]':
+        return self._get_flatten('all')
 
     def dump(self, dump_file_path: 'Path'):
         with dump_file_path.open('wb') as dump_file:

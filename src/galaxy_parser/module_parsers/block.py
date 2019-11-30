@@ -65,15 +65,24 @@ class Block(object):
     def get_all_tasks(self) -> 'List[Union[ModuleParser, Block]]':
         return self._tasks + self._rescue_tasks
 
-    def get_all_tasks_flatten(self) -> 'List[ModuleParser]':
+    def _get_flatten(self, target: str) -> 'List[ModuleParser]':
         tasks = []
-        for task in self.get_all_tasks():
+        for task in getattr(self, f'get_{target}_tasks', self.get_tasks)():
             if isinstance(task, Block):
-                _tasks = task.get_all_tasks_flatten()
+                _tasks = getattr(task, f'get_{target}_tasks', self.get_tasks_flatten)()
                 tasks.extend(_tasks)
             else:
                 tasks.append(task)
         return tasks
+
+    def get_tasks_flatten(self) -> 'List[ModuleParser]':
+        return self._get_flatten('regular')
+
+    def get_rescue_tasks_flatten(self) -> 'List[ModuleParser]':
+        return self._get_flatten('rescue')
+
+    def get_all_tasks_flatten(self) -> 'List[ModuleParser]':
+        return self._get_flatten('all')
 
     def has_when(self) -> 'bool':
         if self._when is not None:
