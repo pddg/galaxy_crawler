@@ -27,7 +27,13 @@ class ParserManager(object):
     Manager object for ModuleParser
     """
 
-    def __init__(self, yaml_contents: 'Dict[str, YAMLFile]', parsers: 'Dict[str, Type[ModuleParser]]'):
+    def __init__(self,
+                 role_name: str,
+                 repo_path: Path,
+                 yaml_contents: 'Dict[str, YAMLFile]',
+                 parsers: 'Dict[str, Type[ModuleParser]]'):
+        self.role_name = role_name
+        self.repo_path = repo_path
         self.parsers = parsers
         self._yaml_contents = yaml_contents
         self.exception = None  # type: Optional[Exception]
@@ -38,6 +44,8 @@ class ParserManager(object):
             }
         except Exception as e:
             self.exception = e
+        if len(self._contents) == 0:
+            self.exception = NoTasks(self.role_name, self.repo_path)
 
     def _block_from_contents(self, filepath: str, content: 'YAMLFile') -> 'List[Block]':
         blocks = []
@@ -79,8 +87,8 @@ class ParserManager(object):
         return manager
 
     @classmethod
-    def from_exception(cls, contents: 'Dict[str, YAMLFile]', exc: 'Exception') -> 'ParserManager':
-        m = ParserManager(contents, {})
+    def from_exception(cls, role_name, repo_path, exc: 'Exception') -> 'ParserManager':
+        m = ParserManager(role_name, repo_path, {}, {})
         m.exception = exc
         return m
 
@@ -142,10 +150,10 @@ class TaskParser(object):
             if len(files) == 0:
                 raise NoTasks(self.role_name, self.repo.path)
         except Exception as e:
-            return ParserManager.from_exception(files, e)
+            return ParserManager.from_exception(self.role_name, self._repo_path, e)
         finally:
             self.repo.cleanup()
-        manager = ParserManager(files, self.parsers)
+        manager = ParserManager(self.role_name, self._repo_path, files, self.parsers)
         # Save obtained tasks
         manager.dump(dump_file)
         return manager
