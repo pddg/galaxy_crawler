@@ -206,7 +206,7 @@ def _parse(role: 'Role',
             task_parser.set_parser(*parsers)
             parsed_task = task_parser.parse()
         except Exception as e:
-            return role_name, ParserManager.from_exception({}, e)
+            return role_name, ParserManager.from_exception(role_name, None, e)
         return role_name, parsed_task
 
 
