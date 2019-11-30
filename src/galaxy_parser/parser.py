@@ -44,7 +44,7 @@ class ParserManager(object):
             }
         except Exception as e:
             self.exception = e
-        if len(self._contents) == 0:
+        if len(self.get_blocks()) == 0:
             self.exception = NoTasks(self.role_name, self.repo_path)
 
     def _block_from_contents(self, filepath: str, content: 'YAMLFile') -> 'List[Block]':
