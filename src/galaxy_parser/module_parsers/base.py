@@ -67,6 +67,12 @@ class ModuleParser(object):
             return False
         return parent.has_when()
 
+    def is_handler(self) -> 'bool':
+        parent = self.get_parent_block()
+        if parent is None:
+            return False
+        return parent.is_handler()
+
     def get_args(self) -> 'dict':
         return self._kwargs.get('args', dict())
 

@@ -67,7 +67,7 @@ class Block(object):
 
     def get_all_tasks_flatten(self) -> 'List[ModuleParser]':
         tasks = []
-        for task in self.get_tasks():
+        for task in self.get_all_tasks():
             if isinstance(task, Block):
                 _tasks = task.get_all_tasks_flatten()
                 tasks.extend(_tasks)
