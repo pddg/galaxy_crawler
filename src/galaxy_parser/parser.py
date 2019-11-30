@@ -71,7 +71,7 @@ class ParserManager(object):
         all_blocks = self.get_blocks()
         tasks = []
         for block in all_blocks:
-            get_func = getattr(block, f'get_{target}_tasks_flattern', block.get_tasks_flatten)
+            get_func = getattr(block, f'get_{target}_tasks_flatten', block.get_tasks_flatten)
             tasks.extend(get_func())
         return tasks
 

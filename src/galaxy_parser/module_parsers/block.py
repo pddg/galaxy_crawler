@@ -69,7 +69,7 @@ class Block(object):
         tasks = []
         for task in getattr(self, f'get_{target}_tasks', self.get_tasks)():
             if isinstance(task, Block):
-                _tasks = getattr(task, f'get_{target}_tasks', self.get_tasks_flatten)()
+                _tasks = getattr(task, f'get_{target}_tasks_flatten', self.get_tasks_flatten)()
                 tasks.extend(_tasks)
             else:
                 tasks.append(task)
