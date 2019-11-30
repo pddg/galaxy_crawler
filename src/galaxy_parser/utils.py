@@ -1,6 +1,7 @@
 import logging
 import os
 import time
+import hashlib
 from multiprocessing import Pool
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -12,6 +13,13 @@ if TYPE_CHECKING:
     from typing import Union, Callable, Any, List
 
 logger = logging.getLogger(__name__)
+
+
+def get_dump_name(role_name: str, version: str) -> 'str':
+    m = hashlib.sha1()
+    m.update(role_name.encode('utf-8'))
+    m.update(version.encode('utf-8'))
+    return m.hexdigest() + '.pickle'
 
 
 def to_role_path(url: str) -> 'Path':

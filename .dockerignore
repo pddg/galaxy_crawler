@@ -200,3 +200,4 @@ output/
 *.db
 .vscode
 bin/
+data/

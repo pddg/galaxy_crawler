@@ -3,27 +3,13 @@ from typing import TYPE_CHECKING
 
 import yaml
 
+from .errors import NoMetaData, NoSuchRole
+
 if TYPE_CHECKING:
     from pathlib import Path
     from typing import Union
 
 logger = logging.getLogger(__name__)
-
-
-class NoSuchRole(Exception):
-    """There is no such name role"""
-
-    def __init__(self, role_name: 'str', path: 'Union[str, Path]'):
-        self.role_name = role_name
-        self.path = path
-
-    def __str__(self):
-        return f"There is no role named '{self.role_name}' in '{self.path}'"
-
-
-class NoMetaData(Exception):
-    """The role has no metadata"""
-    pass
 
 
 def _get_meta(role_path: 'Path') -> 'dict':

@@ -131,7 +131,11 @@ class EngineType(Enum):
     def from_env_var(cls, envs: 'Optional[dict]' = None):
         if envs is None:
             envs = os.environ
-        db_type = envs.get(ENV_VARS_PREFIX + f"_DB_TYPE")
+        params = {}
+        for key, val in _default_db_info.items():
+            var_key = ENV_VARS_PREFIX + f"_DB_{key.upper()}"
+            params[var_key] = envs.get(var_key, val)
+        db_type = params.get(ENV_VARS_PREFIX + f"_DB_TYPE")
         if db_type is None:
             raise InsufficientParameter('type', ENV_VARS_PREFIX + '_DB')
         db_type = db_type.lower()

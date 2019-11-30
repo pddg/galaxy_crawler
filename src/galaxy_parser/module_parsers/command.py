@@ -1,10 +1,9 @@
 from typing import TYPE_CHECKING
 
 from .base import ModuleArgs, BaseCommandModuleParser
-from .utils import split_command
 
 if TYPE_CHECKING:
-    from typing import Union, List
+    from typing import Union
 
 
 class CommandArgs(ModuleArgs):
@@ -19,12 +18,12 @@ class CommandArgs(ModuleArgs):
         self.warn = kwargs.get('warn', True)
 
 
-def _parse_command(cmd: 'Union[dict, str]') -> 'List[str]':
+def _parse_command(cmd: 'Union[dict, str]') -> 'str':
     if isinstance(cmd, str):
-        return split_command(cmd)
+        return cmd
     if not isinstance(cmd, dict):
         raise TypeError(f'dict type is expected, but actual "{cmd.__class__.__name__}"')
-    return cmd.get('argv')
+    return ' '.join(cmd.get('argv'))
 
 
 class CommandModuleParser(BaseCommandModuleParser):
@@ -38,5 +37,4 @@ class CommandModuleParser(BaseCommandModuleParser):
 
     def __init__(self, **kwargs):
         super(CommandModuleParser, self).__init__(**kwargs)
-        self.command = _parse_command(kwargs.get(self.name))
-
+        self.command = _parse_command(kwargs.get(self.name)).strip()

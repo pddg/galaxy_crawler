@@ -11,7 +11,7 @@ from . import monorepo
 from . import utils
 
 if TYPE_CHECKING:
-    from typing import Union, Optional, List
+    from typing import Union, Optional, List, Dict
     from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -19,8 +19,9 @@ logger = logging.getLogger(__name__)
 
 class YAMLFile(object):
 
-    def __init__(self, path: 'Union[str, Path]'):
+    def __init__(self, path: 'Union[str, Path]', is_handler: bool = False):
         self.path = utils.to_path(path)
+        self.is_handler = is_handler
         self.base_dir = self.path.parent
         if not self.path.exists():
             raise FileNotFoundError(f"'{self.path}' does not exists.")
@@ -70,7 +71,7 @@ class Repository(object):
         except Exception as e:
             self._error(f"Checkout failed due to '{e.__class__.__name__}: {e}'")
 
-    def get_yaml(self, dir_name: 'str', role_name: 'Optional[str]' = None) -> 'Optional[YAMLFile]':
+    def get_yaml(self, dir_name: 'str', role_name: 'Optional[str]' = None) -> 'Dict[str, YAMLFile]':
         """
         Concat all YAML file in the specified sub directory
         If the parser failed to load YAML file, skip it and return empty YAMLFile instance.
@@ -85,17 +86,17 @@ class Repository(object):
             role_path = self.path
         base_dir = role_path / dir_name
         yaml_files = _get_yaml_recursively(base_dir)
-        yaml_content = None
+        yamls = dict()
         for yml in yaml_files:
             try:
-                if yaml_content is None:
-                    yaml_content = YAMLFile(yml)
-                else:
-                    yaml_content += YAMLFile(yml)
+                is_handler = False
+                if dir_name == 'handlers':
+                    is_handler = True
+                yamls[str(yml)] = YAMLFile(yml, is_handler)
             except yaml.constructor.ConstructorError as e:
                 self._error(f"YAML parse failed due to '{e}'")
                 continue
-        return yaml_content
+        return yamls
 
     def is_monorepo(self):
         """Whether the repository has monorepo structure"""

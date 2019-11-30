@@ -1,5 +1,4 @@
 from .base import ModuleArgs, BaseCommandModuleParser
-from .utils import split_command
 
 
 class ScriptArgs(ModuleArgs):
@@ -24,4 +23,4 @@ class ScriptModuleParser(BaseCommandModuleParser):
 
     def __init__(self, **kwargs):
         super(ScriptModuleParser, self).__init__(**kwargs)
-        self.command = split_command(kwargs.get(self.name))
+        self.command = kwargs.get(self.name).strip()
