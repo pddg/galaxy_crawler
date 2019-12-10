@@ -23,6 +23,8 @@ def _parse_command(cmd: 'Union[dict, str]') -> 'str':
         return cmd
     if not isinstance(cmd, dict):
         raise TypeError(f'dict type is expected, but actual "{cmd.__class__.__name__}"')
+    if 'cmd' in cmd:
+        return cmd.get('cmd')
     return ' '.join(cmd.get('argv'))
 
 

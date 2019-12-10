@@ -175,7 +175,6 @@ class TaskParser(object):
             latest = latest.name
         return latest
 
-    @functools.lru_cache()
     def _get_dump_dir(self) -> 'Path':
         dump_dir = self._ghq_root.parent / self.dump_dir_name
         if not dump_dir.exists():

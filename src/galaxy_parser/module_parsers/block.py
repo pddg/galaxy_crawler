@@ -18,6 +18,7 @@ class Block(object):
         self._kwargs = kwargs
         self._tasks = []  # type: List[Union[ModuleParser, Block]]
         self._rescue_tasks = []  # type: List[Union[ModuleParser, Block]]
+        self._always_tasks = []  # type: List[Union[ModuleParser, Block]]
         self._when = utils.normalize_condition(kwargs.get('when', None))
 
         # Parent block link
@@ -46,6 +47,9 @@ class Block(object):
         for task in self._kwargs.get('rescue', []):
             parsed = self._parse(task, parsers)
             self._rescue_tasks.append(parsed)
+        for task in self._kwargs.get('always', []):
+            parsed = self._parse(task, parsers)
+            self._always_tasks.append(parsed)
 
     def set_parent(self, parent: 'Block'):
         self._parent = parent
@@ -62,8 +66,14 @@ class Block(object):
     def get_rescue_tasks(self) -> 'List[Union[ModuleParser, Block]]':
         return self._rescue_tasks
 
+    def get_always_tasks(self) -> 'List[Union[ModuleParser, Block]]':
+        return self._always_tasks
+
+    def get_regular_tasks(self) -> 'List[Union[ModuleParser, Block]]':
+        return self._tasks + self._always_tasks
+
     def get_all_tasks(self) -> 'List[Union[ModuleParser, Block]]':
-        return self._tasks + self._rescue_tasks
+        return self._tasks + self._rescue_tasks + self._always_tasks
 
     def _get_flatten(self, target: str) -> 'List[ModuleParser]':
         tasks = []
@@ -80,6 +90,12 @@ class Block(object):
 
     def get_rescue_tasks_flatten(self) -> 'List[ModuleParser]':
         return self._get_flatten('rescue')
+
+    def get_always_tasks_flatten(self) -> 'List[ModuleParser]':
+        return self._get_flatten('always')
+
+    def get_regular_tasks_flatten(self) -> 'List[ModuleParser]':
+        return self._get_flatten('regular')
 
     def get_all_tasks_flatten(self) -> 'List[ModuleParser]':
         return self._get_flatten('all')

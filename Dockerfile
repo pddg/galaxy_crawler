@@ -17,14 +17,8 @@ RUN apt-get update && \
         psycopg2-binary==2.8.3 \
         pymysql==0.9.3 \
         jupyterlab==1.2.3 \
-        jupyterlab-code-formatter==0.7.0 \
         pytablewriter[html]==0.46.1 \
-        black==19.10b0 \
         seaborn==0.9.0 && \
-    jupyter labextension install \
-        @ryantam626/jupyterlab_code_formatter \
-        @lckr/jupyterlab_variableinspector && \
-    jupyter serverextension enable --py jupyterlab_code_formatter && \
     apt-get remove --purge -y \
         gcc \
         g++ \
