@@ -8,7 +8,7 @@ pylint = "*"
 black = "*"
 jupyterlab = "*"
 seaborn = "*"
-pytablewriter = "*"
+pytablewriter = {extras = ["html"],version = "*"}
 
 [packages]
 requests = "*"
