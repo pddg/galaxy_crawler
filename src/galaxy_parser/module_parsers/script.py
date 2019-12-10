@@ -1,4 +1,9 @@
+from typing import TYPE_CHECKING
+
 from .base import ModuleArgs, BaseCommandModuleParser
+
+if TYPE_CHECKING:
+    from typing import Union
 
 
 class ScriptArgs(ModuleArgs):
@@ -12,6 +17,14 @@ class ScriptArgs(ModuleArgs):
         self.removes = kwargs.get('removes')
 
 
+def _parse_command(cmd: 'Union[str, dict]') -> 'str':
+    if isinstance(cmd, str):
+        return cmd
+    if not isinstance(cmd, dict):
+        raise TypeError(f'dict type is expected, but actual "{cmd.__class__.__name__}"')
+    return cmd.get('cmd', '')
+
+
 class ScriptModuleParser(BaseCommandModuleParser):
     """
     Ansible script module - Runs a local script on a remote node after transferring it
@@ -23,4 +36,4 @@ class ScriptModuleParser(BaseCommandModuleParser):
 
     def __init__(self, **kwargs):
         super(ScriptModuleParser, self).__init__(**kwargs)
-        self.command = kwargs.get(self.name).strip()
+        self.command = _parse_command(kwargs.get(self.name)).strip()
