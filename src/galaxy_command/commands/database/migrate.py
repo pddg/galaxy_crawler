@@ -9,7 +9,7 @@ from .options import StorageOption
 if TYPE_CHECKING:
     import argparse
     from typing import Union
-    from galaxy_crawler.app.di import AppComponent
+    from galaxy_command.app.di import AppComponent
 
 logger = logging.getLogger(__name__)
 

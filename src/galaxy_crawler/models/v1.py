@@ -599,3 +599,6 @@ class Role(BaseModel, ModelInterfaceMixin):
             return self.repository.commit
         versions.sort(key=lambda x: x.release_date)
         return versions[-1]
+
+    def get_role_name(self) -> 'str':
+        return f"{self.namespace.name}.{self.name}"

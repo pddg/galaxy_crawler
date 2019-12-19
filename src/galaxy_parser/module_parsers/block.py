@@ -32,10 +32,12 @@ class Block(object):
         if self.name in task:
             block = Block(**task)
             block.set_parent(self)
+            block.set_file(self._file)
             block.parse(parsers)
             return block
         task = utils.parse_task(task, parsers, GeneralModuleParser)
         task.set_parent_block(self)
+        task.set_file(self._file)
         return task
 
     def parse(self, parsers: 'Dict[str, Type[ModuleParser]]'):
