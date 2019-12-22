@@ -1,6 +1,6 @@
 import logging
 
-from .commands import root, crawl, db, load, repo
+from .commands import root, crawl, db, load, repo, task
 
 logger = logging.getLogger(__name__)
 
@@ -12,6 +12,7 @@ def main():
         db.command,
         load.command,
         repo.command,
+        task.command,
     )
     return root_cmd.execute()
 

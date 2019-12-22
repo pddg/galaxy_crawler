@@ -80,6 +80,7 @@ class CloneCommand(uroboros.Command):
                             action='store_true',
                             default=False,
                             help="Show the number of repository to clone (do not clone)")
+        parser.add_argument("--file", type=Path, help="Output list of repos into given file")
         return parser
 
     def run(self, args: 'argparse.Namespace') -> 'Union[ExitStatus, int]':
@@ -113,6 +114,13 @@ class CloneCommand(uroboros.Command):
             logger.info(f"{len(roles)} roles were found")
 
             repositories = _get_repository_urls(roles)
+
+            if args.file:
+                parent = args.file.parent
+                if not parent.exists():
+                    parent.mkdir(parents=True)
+                roles.to_csv(str(args.file))
+
             if not args.dry_run:
                 ghq.clone(repositories)
         except KeyboardInterrupt:

@@ -28,14 +28,16 @@ class ParserManager(object):
     """
 
     def __init__(self,
-                 role_name: str,
+                 role: 'Role',
                  repo_path: Path,
                  yaml_contents: 'Dict[str, YAMLFile]',
-                 parsers: 'Dict[str, Type[ModuleParser]]'):
-        self.role_name = role_name
+                 parsers: 'Dict[str, Type[ModuleParser]]',
+                 role_version: str):
+        self.role = role
         self.repo_path = repo_path
         self.parsers = parsers
         self._yaml_contents = yaml_contents
+        self.role_version = role_version
         self.exception = None  # type: Optional[Exception]
         try:
             self._contents = {
@@ -45,14 +47,14 @@ class ParserManager(object):
         except Exception as e:
             self.exception = e
         if len(self.get_blocks()) == 0:
-            self.exception = NoTasks(self.role_name, self.repo_path)
+            self.exception = NoTasks(self.role.get_role_name(), self.repo_path)
 
     def _block_from_contents(self, filepath: str, content: 'YAMLFile') -> 'List[Block]':
         blocks = []
         for block in content.content:
             b = Block(**block)
-            b.parse(self.parsers)
             b.set_file(filepath)
+            b.parse(self.parsers)
             if content.is_handler:
                 b.set_as_handler()
             blocks.append(b)
@@ -97,8 +99,8 @@ class ParserManager(object):
         return manager
 
     @classmethod
-    def from_exception(cls, role_name, repo_path, exc: 'Exception') -> 'ParserManager':
-        m = ParserManager(role_name, repo_path, {}, {})
+    def from_exception(cls, role, repo_path, exc: 'Exception', role_version: 'Optional[str]' = None) -> 'ParserManager':
+        m = ParserManager(role, repo_path, {}, {}, role_version if role_version else '')
         m.exception = exc
         return m
 
@@ -115,7 +117,7 @@ class TaskParser(object):
 
     def __init__(self, role: 'Role', ghq_root: 'Union[str, Path]'):
         self.role = role
-        self.role_name = f"{self.role.namespace.name}/{self.role.name}"
+        self.role_name = role.get_role_name()
         self._ghq_root = utils.to_path(ghq_root)
         # Path to the repository
         self._repo_path = self._ghq_root / utils.to_role_path(role.repository.clone_url)
@@ -160,10 +162,10 @@ class TaskParser(object):
             if len(files) == 0:
                 raise NoTasks(self.role_name, self.repo.path)
         except Exception as e:
-            return ParserManager.from_exception(self.role_name, self._repo_path, e)
+            return ParserManager.from_exception(self.role, self._repo_path, e)
         finally:
             self.repo.cleanup()
-        manager = ParserManager(self.role_name, self._repo_path, files, self.parsers)
+        manager = ParserManager(self.role, self._repo_path, files, self.parsers, version)
         # Save obtained tasks
         manager.dump(dump_file)
         return manager
@@ -215,7 +217,7 @@ def _parse(role: 'Role',
             task_parser.set_parser(*parsers)
             parsed_task = task_parser.parse()
         except Exception as e:
-            return role_name, ParserManager.from_exception(role_name, None, e)
+            return role_name, ParserManager.from_exception(role, None, e)
         return role_name, parsed_task
 
 

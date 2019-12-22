@@ -1,6 +1,7 @@
 import logging
 from typing import TYPE_CHECKING
 
+import yaml
 from bashlex import errors
 
 from galaxy_parser.script_parsers import (
@@ -48,6 +49,7 @@ class ModuleParser(object):
         self.become_user = kwargs.get('become_user', 'root')
         self.args = self.args_class(**self.get_args())
         self._parent = None  # type: Optional[Block]
+        self._file = None  # type: Optional[str]
 
     @classmethod
     def parse(cls, task: 'Dict[str, str]') -> 'ModuleParser':
@@ -58,6 +60,9 @@ class ModuleParser(object):
 
     def get_parent_block(self) -> 'Block':
         return self._parent
+
+    def set_file(self, filepath: str):
+        self._file = filepath
 
     def has_when(self) -> 'bool':
         if self.when is not None:
@@ -75,6 +80,9 @@ class ModuleParser(object):
 
     def get_args(self) -> 'dict':
         return self._kwargs.get('args', dict())
+
+    def as_yaml(self) -> 'str':
+        return yaml.dump(self._kwargs, sort_keys=False)
 
 
 class GeneralModuleParser(ModuleParser):
