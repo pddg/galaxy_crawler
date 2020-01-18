@@ -9,6 +9,7 @@ black = "*"
 jupyterlab = "*"
 seaborn = "*"
 pytablewriter = {extras = ["html"],version = "*"}
+python-dotenv = "*"
 
 [packages]
 requests = "*"
