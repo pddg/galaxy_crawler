@@ -15,10 +15,7 @@ RUN apt-get update && \
     pip3 install --no-cache-dir \
         "pipenv==2018.11.26" \
         psycopg2-binary==2.8.3 \
-        pymysql==0.9.3 \
-        jupyterlab==1.2.3 \
-        pytablewriter[html]==0.46.1 \
-        seaborn==0.9.0 && \
+        pymysql==0.9.3 && \
     apt-get remove --purge -y \
         gcc \
         g++ \
@@ -34,7 +31,7 @@ RUN apt-get update && \
     apt-get install -y \
         gcc \
         g++ && \
-    pipenv install --system --deploy && \
+    pipenv install --system --dev --deploy && \
     apt-get remove --purge -y \
         gcc \
         g++ && \
