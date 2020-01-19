@@ -217,8 +217,8 @@ def _parse(role: 'Role',
             task_parser.set_parser(*parsers)
             parsed_task = task_parser.parse()
         except Exception as e:
-            return role_name, ParserManager.from_exception(role, None, e)
-        return role_name, parsed_task
+            return role, ParserManager.from_exception(role, None, e)
+        return role, parsed_task
 
 
 def parse_tasks(roles: 'List[Role]',
@@ -235,7 +235,7 @@ def parse_tasks(roles: 'List[Role]',
     :param root_dir: Root directory of cloned repositories
     :param temp_dir: Temporary directory to use
     :param n_jobs: Number of process to use
-    :return: {'role_name': ParserManager(), ...]}, {'role_name': None}
+    :return: {models.v1.Role(): ParserManager(), ...]}, {models.v1.Role(): None}
     """
     root_dir = utils.to_path(root_dir)
     assert root_dir.exists(), f"'{root_dir}' does not exists."
