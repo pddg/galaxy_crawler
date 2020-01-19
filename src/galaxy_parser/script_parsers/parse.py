@@ -35,8 +35,18 @@ class CommandParser(ast.nodevisitor):
 
     def visitcommand(self, n, parts):
         try:
-            command = parts[0]
+            i = 0
+            length = len(parts)
+            while True:
+                if i >= length:
+                    break
+                command = parts[i]
+                if command.kind != 'word':
+                    i += 1
+                else:
+                    break
             if command.kind == 'word':
                 self._commands.append(command)
         except IndexError:
             pass
+
