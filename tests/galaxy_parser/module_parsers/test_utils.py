@@ -86,7 +86,7 @@ class TestFindCommand(object):
         ]
     )
     def test_normal(self, command, expected):
-        actual = utils.find_command(command)
+        actual = utils.get_base_name(command)
         assert actual == expected
 
     @pytest.mark.parametrize(
@@ -101,7 +101,7 @@ class TestFindCommand(object):
     )
     def test_error(self, command, expected):
         with pytest.raises(expected):
-            utils.find_command(command)
+            utils.get_base_name(command)
 
 
 class TestIsTmplVariable(object):
@@ -118,7 +118,7 @@ class TestIsTmplVariable(object):
         ]
     )
     def test_normal(self, sentence, expected):
-        actual = utils.is_tmpl_variable(sentence)
+        actual = utils.is_tmpl_var(sentence)
         assert actual is expected
 
     @pytest.mark.parametrize(
@@ -132,4 +132,36 @@ class TestIsTmplVariable(object):
     )
     def test_error(self, sentence, err):
         with pytest.raises(err):
-            utils.is_tmpl_variable(sentence)
+            utils.is_tmpl_var(sentence)
+
+
+class TestParseCommands(object):
+
+    @pytest.mark.parametrize(
+        'script,expected', [
+            ("echo Hello", [("echo", False)]),
+            ("echo Hello | grep hello", [("echo", False), ("grep", False)]),
+            ("echo $(dirname hoge)", [("echo", False), ("dirname", False)]),
+            ("LC_ALL=C echo Hello", [("echo", False)]),
+            ("echo Hello && echo World", [("echo", False), ("echo", False)]),
+            ("echo Hello || echo World", [("echo", False), ("echo", False)]),
+            ("echo Hello\necho World", [("echo", False), ("echo", False)]),
+            ("if test -d /tmp; then echo Hello; else echo World; fi", [("test", False), ("echo", False), ("echo", False)]),
+            ("ANSIBLE_VAR_UNDEF hoge fuga", [("ANSIBLE_VAR_UNDEF", True)]),
+            ("echo Hello | ANSIBLE_VAR_UNDEF hello", [("echo", False), ("ANSIBLE_VAR_UNDEF", True)]),
+        ]
+    )
+    def test_parse(self, script, expected):
+        actual = utils.parse_commands('shell', script)
+        assert actual == expected
+
+    @pytest.mark.parametrize(
+        "script,expected", [
+            ("echo \nHello", [("echo", False)]),
+            ("echo \nHello\n | \ngrep Hello", [("echo", False), ("grep", False)]),
+            ("echo\n $(dirname\n hoge)", [("echo", False), ("dirname", False)]),
+        ]
+    )
+    def test_parse_command_module(self, script, expected):
+        actual = utils.parse_commands('command', script)
+        assert actual == expected

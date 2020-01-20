@@ -2,15 +2,7 @@ import logging
 from typing import TYPE_CHECKING
 
 import yaml
-from bashlex import errors
-
-from galaxy_parser.script_parsers import (
-    is_tmpl_var,
-    fill_variable,
-    as_ast,
-    CommandParser,
-)
-from .utils import get_base_name
+from .utils import parse_commands
 
 if TYPE_CHECKING:
     from typing import Dict, Tuple, List, Optional
@@ -93,33 +85,4 @@ class GeneralModuleParser(ModuleParser):
 class BaseCommandModuleParser(ModuleParser):
 
     def get_commands(self) -> 'List[Tuple[str, bool]]':
-        """
-        Returns the execution command itself without any arguments.
-        Returns the basename of the path if it is indicated by an absolute/relative path.
-        If a template variable is used in the execution command, the second return value will be True.
-        For example:
-            'echo "Hello world"' -> [("echo", False)]
-            '/bin/echo "Hello world"' -> [("echo", False)]
-            './bin/echo "Hello world"' -> [("echo", False)]
-            'echo "{{ message }}"' -> [("echo", False)]
-            '{{ echo_cmd }} "Hello world"' -> [("ANSIBLE_VAR_UNDEF", True)]
-            '/bin/{{ echo_cmd }} "Hello world"' -> [("ANSIBLE_VAR_UNDEF", True)]
-        :return: Command name and whether a template variable is used
-        """
-        command = self.command
-        command = fill_variable(command)
-        command = command.replace('\n', ' ')
-        command = command.replace('\r', '')
-        try:
-            trees = as_ast(command)
-        except (errors.ParsingError, NotImplementedError) as e:
-            logger.warning(f"Failed to parse by bashlex({e}): '{command}'")
-            # Try to use heuristic approach
-            command = get_base_name(self.command)
-            return [(command, is_tmpl_var(command))]
-        commands = []
-        for tree in trees:
-            parser = CommandParser()
-            parser.visit(tree)
-            commands.extend(parser.get_commands())
-        return [(get_base_name(c), is_tmpl_var(c)) for c in commands]
+        return parse_commands(self.name, self.command)
