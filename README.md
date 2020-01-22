@@ -116,4 +116,4 @@ pddg
 
 ## License
 
-MIT
+Apache Software License
