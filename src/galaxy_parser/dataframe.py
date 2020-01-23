@@ -34,8 +34,10 @@ def _make_row(task: 'BaseCommandModuleParser', role: 'Role', version: str, is_re
     yml_path = Path(task._file)
     if ghq_root is not None:
         yml_path = yml_path.relative_to(ghq_root)
-    has_creates = True if len(getattr(task.args, 'creates', "")) != 0 else False
-    has_removes = True if len(getattr(task.args, 'removes', "")) != 0 else False
+    creates = getattr(task.args, 'creates', "")
+    removes = getattr(task.args, 'removes', "")
+    has_creates = True if len(creates) is not None and len(creates) != 0 else False
+    has_removes = True if len(removes) is not None and len(removes) != 0 else False
     return [
         role.role_id, role.name, role.namespace.name, role.repository.clone_url, version, role.min_ansible_version,
         task.name, task._kwargs.get('name', 'No name'), task.command, yml_b64, is_rescue, yml_path, task.has_when(),
