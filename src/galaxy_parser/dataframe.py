@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 _headers = ['role_id', 'role_name', 'role_owner', 'role_repository', 'role_version', 'min_ansible_version',
             'module', 'name', 'script', 'yaml', 'is_rescue', 'yaml_path', 'has_when', 'is_handler',
-            'creates', 'removes', 'changed_when', 'failed_when', 'published_at']
+            'has_creates', 'has_removes', 'changed_when', 'failed_when', 'published_at']
 
 
 def _make_row(task: 'BaseCommandModuleParser', role: 'Role', version: str, is_rescue: bool, ghq_root: 'Optional[Path]'):
@@ -34,10 +34,12 @@ def _make_row(task: 'BaseCommandModuleParser', role: 'Role', version: str, is_re
     yml_path = Path(task._file)
     if ghq_root is not None:
         yml_path = yml_path.relative_to(ghq_root)
+    has_creates = True if len(task.args.get('creates', "")) != 0 else False
+    has_removes = True if len(task.args.get('removes', "")) != 0 else False
     return [
         role.role_id, role.name, role.namespace.name, role.repository.clone_url, version, role.min_ansible_version,
         task.name, task._kwargs.get('name', 'No name'), task.command, yml_b64, is_rescue, yml_path, task.has_when(),
-        task.is_handler(), task._kwargs.get('creates', ""), task._kwargs.get('removes', ''), task.changed_when,
+        task.is_handler(), has_creates, has_removes, task.changed_when,
         task.failed_when, pub_date
     ]
 
